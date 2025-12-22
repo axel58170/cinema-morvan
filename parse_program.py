@@ -16,6 +16,7 @@ import json
 import os
 import re
 import urllib.request
+import urllib.parse
 from dataclasses import dataclass
 from datetime import date
 from typing import Any, Dict, Iterable, List, Optional, Tuple
@@ -24,6 +25,7 @@ PDF_PATH = "INTERNET-MORVAN.pdf"  # adjust if needed
 MODEL = "mistral-ocr-latest"
 OCR_ENDPOINT = "https://api.mistral.ai/v1/ocr"
 DEFAULT_YEAR = 2025
+TMDB_API_BASE = "https://api.themoviedb.org/3"
 
 def _load_env_fallback(path: str = ".env") -> None:
     if not os.path.exists(path):
@@ -99,6 +101,84 @@ def call_mistral_ocr(pdf_path: str, include_image_base64: bool = False) -> Dict[
     with urllib.request.urlopen(req) as resp:
         raw = resp.read().decode("utf-8")
     return json.loads(raw)
+
+
+def _http_get_json(url: str) -> Dict[str, Any]:
+    req = urllib.request.Request(url, method="GET")
+    with urllib.request.urlopen(req) as resp:
+        raw = resp.read().decode("utf-8")
+    return json.loads(raw)
+
+
+def _pick_trailer_url(videos_payload: Dict[str, Any]) -> Optional[str]:
+    results = videos_payload.get("results") or []
+    if not results:
+        return None
+    ranked = []
+    for item in results:
+        if not isinstance(item, dict):
+            continue
+        if item.get("site") != "YouTube":
+            continue
+        key = item.get("key")
+        if not key:
+            continue
+        kind = (item.get("type") or "").lower()
+        rank = 2
+        if kind == "trailer":
+            rank = 0
+        elif kind == "teaser":
+            rank = 1
+        ranked.append((rank, key))
+    if not ranked:
+        return None
+    ranked.sort(key=lambda pair: pair[0])
+    return f"https://www.youtube.com/watch?v={ranked[0][1]}"
+
+
+def fetch_tmdb_info(title: str, api_key: str) -> Dict[str, Optional[str]]:
+    if not title:
+        return {"original_title": None, "original_language": None, "yt_trailer_url": None}
+
+    query = urllib.parse.quote(title)
+    search_url = (
+        f"{TMDB_API_BASE}/search/movie?api_key={api_key}"
+        f"&query={query}&include_adult=false&language=fr-FR"
+    )
+    try:
+        payload = _http_get_json(search_url)
+    except Exception:
+        return {"original_title": None, "original_language": None, "yt_trailer_url": None}
+
+    results = payload.get("results") or []
+    if not results:
+        return {"original_title": None, "original_language": None, "yt_trailer_url": None}
+
+    first = results[0]
+    if not isinstance(first, dict):
+        return {"original_title": None, "original_language": None, "yt_trailer_url": None}
+
+    movie_id = first.get("id")
+    original_title = first.get("original_title")
+    original_language = first.get("original_language")
+    trailer_url = None
+
+    if movie_id:
+        videos_url = (
+            f"{TMDB_API_BASE}/movie/{movie_id}/videos?api_key={api_key}"
+            f"&language=fr-FR"
+        )
+        try:
+            videos_payload = _http_get_json(videos_url)
+            trailer_url = _pick_trailer_url(videos_payload)
+        except Exception:
+            trailer_url = None
+
+    return {
+        "original_title": original_title,
+        "original_language": original_language,
+        "yt_trailer_url": trailer_url,
+    }
 
 
 # ---- Parsing helpers ----
@@ -285,6 +365,17 @@ def collect_page_texts(ocr_json: Dict[str, Any]) -> List[str]:
     return texts
 
 
+def parse_markdown_row_from_line(line: str) -> Optional[List[str]]:
+    if "|" not in line:
+        return None
+    if TABLE_SEPARATOR_RE.match(line):
+        return None
+    parts = [p.strip() for p in line.strip().strip("|").split("|")]
+    if len(parts) < 2:
+        return None
+    return parts
+
+
 def process_tables(texts: List[str], year: int) -> List[Screening]:
     results: List[Screening] = []
 
@@ -300,7 +391,21 @@ def process_tables(texts: List[str], year: int) -> List[Screening]:
         if m:
             current_month = m
 
-        for row in iter_markdown_table_rows(page_text):
+        for raw_line in page_text.splitlines():
+            line = (raw_line or "").strip()
+            if not line:
+                continue
+
+            month_from_line = infer_month_from_week_range(line)
+            if month_from_line:
+                current_month = month_from_line
+
+            cinema_from_line = normalize_cinema(line)
+            if cinema_from_line:
+                current_cinema = cinema_from_line
+                continue
+
+            row = parse_markdown_row_from_line(line)
             if not row:
                 continue
 
@@ -365,7 +470,28 @@ def extract_screenings(pdf_path: str) -> List[Dict[str, Any]]:
         key = (s.cinema, s.movie_title, s.date, s.time, s.version)
         uniq[key] = s
 
-    return [s.__dict__ for s in uniq.values()]
+    output = [s.__dict__ for s in uniq.values()]
+
+    tmdb_key = os.getenv("TMDB_API_KEY", "").strip()
+    if not tmdb_key:
+        return output
+
+    info_cache: Dict[str, Dict[str, Optional[str]]] = {}
+    for item in output:
+        title = item.get("movie_title") or ""
+        if title not in info_cache:
+            info_cache[title] = fetch_tmdb_info(title, tmdb_key)
+        info = info_cache[title]
+        item["original_title"] = info.get("original_title")
+        item["original_language"] = info.get("original_language")
+        item["yt_trailer_url"] = info.get("yt_trailer_url")
+
+        original_language = (item.get("original_language") or "").lower()
+        version = (item.get("version") or "").upper()
+        if original_language and original_language != "fr" and version != "VOST":
+            item["version"] = "VF"
+
+    return output
 
 
 if __name__ == "__main__":

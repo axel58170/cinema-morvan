@@ -2,6 +2,8 @@
 
 Site web 100 % statique pour consulter un programme cinéma par cinéma, par date ou par film, avec recherche, filtres VF/VOST et liens d’aperçu.
 
+Site réalisé par Axel Graff (axelgraff@gmail.com). Sceni Qua Non n’a pas été impliqué à ce stade.
+
 Ce site fonctionne en `file://` sans CORS car il utilise des scripts classiques (pas d’import ES modules). Si vous souhaitez revenir aux modules ES, lancez un petit serveur local.
 
 ## Comment modifier les données

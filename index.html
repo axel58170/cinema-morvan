@@ -7,13 +7,16 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Space+Grotesk:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <div class="page">
+      <div class="beta-banner" role="status">
+        Version bêta — des erreurs peuvent subsister dans les données.
+      </div>
       <header class="hero">
         <div class="hero__content">
           <p class="eyebrow">Programme</p>
@@ -55,11 +58,20 @@
 
             <label class="field">
               <span>Version</span>
-              <select id="versionFilter">
-                <option value="all">Toutes</option>
-                <option value="VF">VF</option>
-                <option value="VOST">VOST</option>
-              </select>
+              <div class="checkbox-group" id="versionFilter">
+                <label class="checkbox">
+                  <input type="checkbox" id="vfFilter" checked />
+                  <span>VF</span>
+                </label>
+                <label class="checkbox">
+                  <input type="checkbox" id="vostFilter" checked />
+                  <span>VOST</span>
+                </label>
+                <label class="checkbox">
+                  <input type="checkbox" id="vofFilter" checked />
+                  <span>VOF</span>
+                </label>
+              </div>
             </label>
 
             <label class="field" id="cinemaFilterWrap">
@@ -76,7 +88,14 @@
 
       <footer class="footer">
         <p>
-          Aperçus via YouTube et Allociné — liens générés automatiquement, sans API.
+          Aperçus via YouTube et Allociné — liens générés automatiquement (TMDB).
+        </p>
+        <p>
+          Données et cinémas gérés par Sceni Qua Non :
+          <a href="http://sceniquanon.com" target="_blank" rel="noopener noreferrer">sceniquanon.com</a>
+        </p>
+        <p>
+          Site réalisé par Axel Graff (axelgraff@gmail.com). Sceni Qua Non n’a pas été impliqué à ce stade.
         </p>
         <p id="lastUpdated"></p>
       </footer>

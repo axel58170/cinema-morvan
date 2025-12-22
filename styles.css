@@ -9,27 +9,51 @@
   --stroke: #e1d8cc;
   --shadow: 0 20px 45px rgba(30, 26, 23, 0.12);
   --radius: 20px;
+  font-size: 120%;
 }
 
 * {
   box-sizing: border-box;
 }
 
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
 body {
   margin: 0;
-  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+  font-family: "Alegreya Sans", "Segoe UI", sans-serif;
+  font-size: 1.2rem;
   background:
     radial-gradient(circle at top left, #f0d9c8 0%, transparent 45%),
     radial-gradient(circle at 80% 20%, #f7edd5 0%, transparent 50%),
     var(--bg);
   color: var(--ink);
   min-height: 100vh;
+  font-variant-numeric: oldstyle-nums;
+  font-feature-settings: "onum" 1;
 }
 
 .page {
   max-width: 1100px;
   margin: 0 auto;
   padding: 40px 20px 60px;
+}
+
+.beta-banner {
+  background: #1e1a17;
+  color: #fffdf8;
+  border-radius: 16px;
+  padding: 14px 18px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  text-align: center;
+  box-shadow: 0 12px 22px rgba(30, 26, 23, 0.18);
+  margin-bottom: 20px;
 }
 
 .hero {
@@ -46,14 +70,13 @@ body {
 
 .eyebrow {
   font-size: 0.9rem;
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
+  text-transform: none;
+  letter-spacing: normal;
   color: var(--accent);
   margin: 0 0 10px;
 }
 
 h1 {
-  font-family: "Fraunces", "Times New Roman", serif;
   font-size: clamp(2rem, 4vw, 3.2rem);
   margin: 0 0 8px;
 }
@@ -71,6 +94,7 @@ h1 {
   padding: 28px;
   border: 1px solid var(--stroke);
   box-shadow: var(--shadow);
+  font-size: 1.1rem;
 }
 
 .controls {
@@ -94,7 +118,7 @@ h1 {
   background: transparent;
   padding: 10px 18px;
   border-radius: 999px;
-  font-family: "Space Grotesk", sans-serif;
+  font-family: inherit;
   font-weight: 600;
   color: var(--muted);
   cursor: pointer;
@@ -131,9 +155,30 @@ h1 {
   padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid var(--stroke);
-  font-family: "Space Grotesk", sans-serif;
+  font-family: inherit;
   font-size: 1rem;
   background: white;
+}
+
+.checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  align-items: center;
+}
+
+.checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+
+.checkbox input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
 }
 
 .results {
@@ -166,24 +211,23 @@ h1 {
   border-radius: 12px;
 }
 
-.group[data-collapsible="cinema"] .group__header::after {
+.group[data-collapsible] .group__header::after {
   content: '▾';
   font-size: 0.9rem;
   color: var(--muted);
   transition: transform 0.2s ease;
 }
 
-.group[data-collapsible="cinema"].is-collapsed .group__header::after {
+.group[data-collapsible].is-collapsed .group__header::after {
   transform: rotate(-90deg);
 }
 
-.group[data-collapsible="cinema"] .group__header:focus-visible {
+.group[data-collapsible] .group__header:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 4px;
 }
 
 .group__title {
-  font-family: "Fraunces", serif;
   font-size: 1.4rem;
   margin: 0;
 }
@@ -191,6 +235,8 @@ h1 {
 .group__meta {
   color: var(--muted);
   font-size: 0.9rem;
+  margin-left: auto;
+  text-align: right;
 }
 
 .group__section {
@@ -207,7 +253,6 @@ h1 {
 }
 
 .group__section-title {
-  font-family: "Fraunces", serif;
   font-size: 1.05rem;
   margin: 0;
 }
@@ -215,22 +260,6 @@ h1 {
 .group__section-meta {
   color: var(--muted);
   font-size: 0.85rem;
-}
-
-.copy-btn {
-  border: 1px solid var(--accent);
-  background: transparent;
-  color: var(--accent);
-  padding: 8px 14px;
-  border-radius: 999px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.copy-btn:hover {
-  background: var(--accent);
-  color: white;
 }
 
 .showtimes {
@@ -247,12 +276,16 @@ h1 {
   border-radius: 12px;
   background: white;
   border: 1px solid var(--stroke);
-  font-size: 0.95rem;
+  font-size: 1.05rem;
 }
 
 .showtime > div:not(.showtime__links) {
   flex: 1 1 160px;
   min-width: 120px;
+}
+
+.showtime__title {
+  flex: 2 1 260px;
 }
 
 .showtime strong {

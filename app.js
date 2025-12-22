@@ -2,9 +2,15 @@ const program = window.PROGRAM || [];
 const state = {
   mode: 'cinema',
   movieFilter: 'all',
-  versionFilter: 'all',
+  versionFilters: {
+    vf: true,
+    vost: true,
+    vof: true
+  },
   cinemaFilter: 'all',
-  showAllDates: false
+  showAllDates: false,
+  expandedCinemas: new Set(),
+  expandedMovies: new Set()
 };
 
 const parseTimeToMinutes = (timeRaw) => {
@@ -69,7 +75,9 @@ const records = program.map((item) => ({
 
 const resultsEl = document.querySelector('#results');
 const movieFilterEl = document.querySelector('#movieFilter');
-const versionFilterEl = document.querySelector('#versionFilter');
+const vfFilterEl = document.querySelector('#vfFilter');
+const vostFilterEl = document.querySelector('#vostFilter');
+const vofFilterEl = document.querySelector('#vofFilter');
 const cinemaFilterEl = document.querySelector('#cinemaFilter');
 const cinemaFilterWrapEl = document.querySelector('#cinemaFilterWrap');
 const lastUpdatedEl = document.querySelector('#lastUpdated');
@@ -120,7 +128,8 @@ const buildShowtimeRow = (item, options = {}) => {
 
   if (!options.omitMovie) {
     const movie = document.createElement('div');
-    movie.innerHTML = `<strong>${item.movie_title}</strong>`;
+    movie.className = 'showtime__title';
+    movie.textContent = item.movie_title;
     cells.push(movie);
   }
 
@@ -149,7 +158,7 @@ const buildShowtimeRow = (item, options = {}) => {
 
   const trailerLink = document.createElement('a');
   const trailerQuery = encodeURIComponent(`${item.movie_title} bande annonce`);
-  trailerLink.href = `https://www.youtube.com/results?search_query=${trailerQuery}`;
+  trailerLink.href = item.yt_trailer_url || `https://www.youtube.com/results?search_query=${trailerQuery}`;
   trailerLink.target = '_blank';
   trailerLink.rel = 'noopener noreferrer';
   trailerLink.textContent = 'Aperçu';
@@ -174,39 +183,6 @@ const buildShowtimeRow = (item, options = {}) => {
   return row;
 };
 
-const buildCopyButton = (title, items) => {
-  const button = document.createElement('button');
-  button.className = 'copy-btn';
-  button.type = 'button';
-  button.textContent = 'Copier';
-
-  const text = [
-    `Film : ${title}`,
-    'Séances :',
-    ...items.map((item) => {
-      const versionLabel = item.version ? ` (${item.version})` : '';
-      return `- ${formatDateFR(item.dateISO)} ${item.timeRaw} — ${item.cinema}${versionLabel}`;
-    })
-  ].join('\n');
-
-  button.addEventListener('click', async () => {
-    try {
-      await navigator.clipboard.writeText(text);
-      button.textContent = 'Copié !';
-      setTimeout(() => {
-        button.textContent = 'Copier';
-      }, 1200);
-    } catch (error) {
-      button.textContent = 'Erreur';
-      setTimeout(() => {
-        button.textContent = 'Copier';
-      }, 1200);
-    }
-  });
-
-  return button;
-};
-
 const renderGroups = (groups, options = {}) => {
   resultsEl.innerHTML = '';
 
@@ -221,9 +197,20 @@ const renderGroups = (groups, options = {}) => {
   groups.forEach(({ title, items, meta, showCopy }) => {
     const container = document.createElement('article');
     container.className = 'group';
+    if (options.collapsibleKey) {
+      container.dataset.collapsible = options.collapsibleKey;
+      container.dataset.groupKey = title;
+    }
 
     const header = document.createElement('div');
     header.className = 'group__header';
+    if (options.collapsibleKey) {
+      header.setAttribute('role', 'button');
+      header.setAttribute('tabindex', '0');
+      const isExpanded = options.isExpanded ? options.isExpanded(title) : false;
+      header.setAttribute('aria-expanded', String(isExpanded));
+      container.classList.toggle('is-collapsed', !isExpanded);
+    }
 
     const titleEl = document.createElement('h2');
     titleEl.className = 'group__title';
@@ -235,15 +222,19 @@ const renderGroups = (groups, options = {}) => {
 
     header.append(titleEl, metaEl);
 
-    if (showCopy) {
-      header.appendChild(buildCopyButton(title, items));
+    const body = document.createElement('div');
+    body.className = 'group__body';
+    if (options.collapsibleKey) {
+      const isExpanded = options.isExpanded ? options.isExpanded(title) : false;
+      body.hidden = !isExpanded;
     }
 
     const list = document.createElement('div');
     list.className = 'showtimes';
     items.forEach((item) => list.appendChild(buildShowtimeRow(item, options)));
+    body.appendChild(list);
 
-    container.append(header, list);
+    container.append(header, body);
     resultsEl.appendChild(container);
   });
 };
@@ -263,12 +254,14 @@ const renderCinemaGroups = (groups) => {
     const container = document.createElement('article');
     container.className = 'group';
     container.dataset.collapsible = 'cinema';
+    container.dataset.cinemaKey = title;
 
     const header = document.createElement('div');
     header.className = 'group__header';
     header.setAttribute('role', 'button');
     header.setAttribute('tabindex', '0');
-    header.setAttribute('aria-expanded', 'false');
+    const isExpanded = state.expandedCinemas.has(title);
+    header.setAttribute('aria-expanded', String(isExpanded));
 
     const titleEl = document.createElement('h2');
     titleEl.className = 'group__title';
@@ -283,6 +276,8 @@ const renderCinemaGroups = (groups) => {
 
     const body = document.createElement('div');
     body.className = 'group__body';
+    body.hidden = !isExpanded;
+    container.classList.toggle('is-collapsed', !isExpanded);
 
     const byDate = Array.from(groupBy(items, (item) => item.dateISO))
       .map(([dateISO, dateItems]) => ({
@@ -333,7 +328,16 @@ const buildFilteredList = () => {
       if (state.movieFilter !== 'all' && item.movie_title !== state.movieFilter) {
         return false;
       }
-      if (state.versionFilter !== 'all' && item.version !== state.versionFilter) {
+      const version = (item.version || '').toUpperCase();
+      const originalLanguage = (item.original_language || '').toLowerCase();
+      const isVOF = !version && originalLanguage === 'fr';
+      if (version === 'VOST' && !state.versionFilters.vost) {
+        return false;
+      }
+      if (version === 'VF' && !state.versionFilters.vf) {
+        return false;
+      }
+      if (isVOF && !state.versionFilters.vof) {
         return false;
       }
       if (state.cinemaFilter !== 'all' && item.cinema !== state.cinemaFilter) {
@@ -399,12 +403,18 @@ const render = () => {
         title: movie,
         items,
         meta: `${items.length} séance${items.length > 1 ? 's' : ''}`,
-        showCopy: true
+        showCopy: false
       };
     })
     .sort((a, b) => a.title.localeCompare(b.title, 'fr'));
 
-  renderGroups(groups, { omitMovie: true, showWeekday: true });
+  renderGroups(groups, {
+    omitMovie: true,
+    showWeekday: true,
+    collapsibleKey: 'film',
+    isExpanded: (title) => state.expandedMovies.has(title)
+  });
+  initFilmCollapsibles();
 };
 
 const initCinemaCollapsibles = () => {
@@ -416,9 +426,18 @@ const initCinemaCollapsibles = () => {
 
     const toggle = () => {
       const expanded = header.getAttribute('aria-expanded') === 'true';
-      header.setAttribute('aria-expanded', String(!expanded));
-      body.hidden = expanded;
-      container.classList.toggle('is-collapsed', expanded);
+      const nextExpanded = !expanded;
+      header.setAttribute('aria-expanded', String(nextExpanded));
+      body.hidden = !nextExpanded;
+      container.classList.toggle('is-collapsed', !nextExpanded);
+      const cinemaKey = container.dataset.cinemaKey;
+      if (cinemaKey) {
+        if (nextExpanded) {
+          state.expandedCinemas.add(cinemaKey);
+        } else {
+          state.expandedCinemas.delete(cinemaKey);
+        }
+      }
     };
 
     header.addEventListener('click', toggle);
@@ -428,9 +447,45 @@ const initCinemaCollapsibles = () => {
       toggle();
     });
 
-    header.setAttribute('aria-expanded', 'false');
-    body.hidden = true;
-    container.classList.add('is-collapsed');
+    const expanded = header.getAttribute('aria-expanded') === 'true';
+    body.hidden = !expanded;
+    container.classList.toggle('is-collapsed', !expanded);
+  });
+};
+
+const initFilmCollapsibles = () => {
+  const headers = Array.from(document.querySelectorAll('.group[data-collapsible="film"] .group__header'));
+  headers.forEach((header) => {
+    const container = header.closest('.group');
+    const body = container ? container.querySelector('.group__body') : null;
+    if (!container || !body) return;
+
+    const toggle = () => {
+      const expanded = header.getAttribute('aria-expanded') === 'true';
+      const nextExpanded = !expanded;
+      header.setAttribute('aria-expanded', String(nextExpanded));
+      body.hidden = !nextExpanded;
+      container.classList.toggle('is-collapsed', !nextExpanded);
+      const groupKey = container.dataset.groupKey;
+      if (groupKey) {
+        if (nextExpanded) {
+          state.expandedMovies.add(groupKey);
+        } else {
+          state.expandedMovies.delete(groupKey);
+        }
+      }
+    };
+
+    header.addEventListener('click', toggle);
+    header.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      toggle();
+    });
+
+    const expanded = header.getAttribute('aria-expanded') === 'true';
+    body.hidden = !expanded;
+    container.classList.toggle('is-collapsed', !expanded);
   });
 };
 
@@ -500,8 +555,18 @@ movieFilterEl.addEventListener('change', (event) => {
   render();
 });
 
-versionFilterEl.addEventListener('change', (event) => {
-  state.versionFilter = event.target.value;
+vfFilterEl.addEventListener('change', (event) => {
+  state.versionFilters.vf = event.target.checked;
+  render();
+});
+
+vostFilterEl.addEventListener('change', (event) => {
+  state.versionFilters.vost = event.target.checked;
+  render();
+});
+
+vofFilterEl.addEventListener('change', (event) => {
+  state.versionFilters.vof = event.target.checked;
   render();
 });
 

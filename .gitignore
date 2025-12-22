@@ -1,1 +1,5 @@
 .env
+.ocr*
+ocr_debug_*.json
+ocr_page_*.md
+__pycache__/
