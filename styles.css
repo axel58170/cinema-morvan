@@ -350,6 +350,44 @@ h1 {
     padding: 20px;
   }
 
+  .group {
+    border: none;
+    background: transparent;
+    padding: 0;
+  }
+
+  .group__header {
+    background: transparent;
+    padding: 0 0 6px;
+    margin: 0 0 10px;
+  }
+
+  .group__section {
+    border-top: none;
+    padding: 6px 0 2px;
+  }
+
+  .showtime {
+    border: none;
+    background: transparent;
+    padding: 6px 0;
+    gap: 12px;
+    flex-wrap: nowrap;
+  }
+
+  .showtime > div:not(.showtime__links) {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+
+  .showtime__title {
+    flex: 1 1 auto;
+  }
+
+  .showtime__links {
+    display: none;
+  }
+
   .segment {
     width: 100%;
   }
@@ -360,6 +398,6 @@ h1 {
   }
 
   .showtime > div:not(.showtime__links) {
-    flex-basis: 100%;
+    flex-basis: auto;
   }
 }

@@ -114,6 +114,11 @@ const buildCinemaOptions = () => {
   });
 };
 
+const formatCinemaName = (name) => {
+  if (!name) return '';
+  return name.split('–')[0].trim();
+};
+
 const buildShowtimeRow = (item, options = {}) => {
   const row = document.createElement('div');
   row.className = 'showtime';
@@ -122,7 +127,7 @@ const buildShowtimeRow = (item, options = {}) => {
 
   if (!options.omitCinema) {
     const cinema = document.createElement('div');
-    cinema.textContent = item.cinema;
+    cinema.textContent = formatCinemaName(item.cinema);
     cells.push(cinema);
   }
 
@@ -153,33 +158,7 @@ const buildShowtimeRow = (item, options = {}) => {
   version.textContent = item.version ?? '';
   cells.push(version);
 
-  const links = document.createElement('div');
-  links.className = 'showtime__links';
-
-  const trailerLink = document.createElement('a');
-  const trailerQuery = encodeURIComponent(`${item.movie_title} bande annonce`);
-  trailerLink.href = item.yt_trailer_url || `https://www.youtube.com/results?search_query=${trailerQuery}`;
-  trailerLink.target = '_blank';
-  trailerLink.rel = 'noopener noreferrer';
-  trailerLink.textContent = 'Aperçu';
-  trailerLink.setAttribute(
-    'aria-label',
-    `Aperçu de ${item.movie_title} sur YouTube`
-  );
-
-  const allocineLink = document.createElement('a');
-  const allocineQuery = encodeURIComponent(item.movie_title);
-  allocineLink.href = `https://www.allocine.fr/rechercher/?q=${allocineQuery}`;
-  allocineLink.target = '_blank';
-  allocineLink.rel = 'noopener noreferrer';
-  allocineLink.textContent = 'Allociné';
-  allocineLink.setAttribute(
-    'aria-label',
-    `Page Allociné pour ${item.movie_title}`
-  );
-
-  links.append(trailerLink, allocineLink);
-  row.append(...cells, links);
+  row.append(...cells);
   return row;
 };
 
@@ -359,7 +338,7 @@ const render = () => {
       groupBy(filtered, (item) => item.cinemaKey)
     )
       .map(([key, items]) => {
-        const cinema = items[0]?.cinema ?? key;
+        const cinema = formatCinemaName(items[0]?.cinema ?? key);
         return {
           title: cinema,
           items,
