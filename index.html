@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=20251222a" />
   </head>
   <body>
     <div class="page">
@@ -28,61 +28,62 @@
         </div>
       </header>
 
-      <main class="card" aria-live="polite">
-        <section class="controls">
-          <div class="segment" role="tablist" aria-label="Modes d’affichage">
-            <button class="segment__btn" role="tab" aria-selected="true" data-mode="cinema">
-              Par cinéma
-            </button>
-            <button class="segment__btn" role="tab" aria-selected="false" data-mode="date">
-              Par date
-            </button>
-            <button class="segment__btn" role="tab" aria-selected="false" data-mode="film">
-              Par film
-            </button>
-          </div>
+      <section class="controls-panel" aria-live="polite">
+        <div class="segment" role="tablist" aria-label="Modes d’affichage">
+          <button class="segment__btn" role="tab" aria-selected="true" data-mode="cinema">
+            Par cinéma
+          </button>
+          <button class="segment__btn" role="tab" aria-selected="false" data-mode="date">
+            Par date
+          </button>
+          <button class="segment__btn" role="tab" aria-selected="false" data-mode="film">
+            Par film
+          </button>
+        </div>
 
-          <div class="filters">
-            <label class="field">
-              <span>Période</span>
-              <button type="button" id="dateToggle" class="toggle-btn">
-                À venir
-              </button>
+        <div class="filters">
+          <label class="field field--full">
+            <span>Période</span>
+            <label class="checkbox">
+              <input type="checkbox" id="showAllDates" />
+              <span>Afficher les dates passées</span>
             </label>
-            <label class="field">
-              <span>Film</span>
-              <select id="movieFilter">
-                <option value="all">Tous les films</option>
-              </select>
-            </label>
+          </label>
+          <label class="field">
+            <span>Film</span>
+            <select id="movieFilter">
+              <option value="all">Tous les films</option>
+            </select>
+          </label>
 
-            <label class="field">
-              <span>Version</span>
-              <div class="checkbox-group" id="versionFilter">
-                <label class="checkbox">
-                  <input type="checkbox" id="vfFilter" checked />
-                  <span>VF</span>
-                </label>
-                <label class="checkbox">
-                  <input type="checkbox" id="vostFilter" checked />
-                  <span>VOST</span>
-                </label>
-                <label class="checkbox">
-                  <input type="checkbox" id="vofFilter" checked />
-                  <span>VOF</span>
-                </label>
-              </div>
-            </label>
+          <label class="field">
+            <span>Version</span>
+            <div class="checkbox-group" id="versionFilter">
+              <label class="checkbox">
+                <input type="checkbox" id="vfFilter" checked />
+                <span>VF</span>
+              </label>
+              <label class="checkbox">
+                <input type="checkbox" id="vostFilter" checked />
+                <span>VOST</span>
+              </label>
+              <label class="checkbox">
+                <input type="checkbox" id="vofFilter" checked />
+                <span>VOF</span>
+              </label>
+            </div>
+          </label>
 
-            <label class="field" id="cinemaFilterWrap">
-              <span>Cinéma</span>
-              <select id="cinemaFilter">
-                <option value="all">Tous les cinémas</option>
-              </select>
-            </label>
-          </div>
-        </section>
+          <label class="field" id="cinemaFilterWrap">
+            <span>Cinéma</span>
+            <select id="cinemaFilter">
+              <option value="all">Tous les cinémas</option>
+            </select>
+          </label>
+        </div>
+      </section>
 
+      <main>
         <section class="results" id="results"></section>
       </main>
 
@@ -101,7 +102,7 @@
       </footer>
     </div>
 
-    <script src="data.js"></script>
-    <script src="app.js"></script>
+      <script src="data.js?v=20251222a"></script>
+      <script src="app.js?v=20251222a"></script>
   </body>
 </html>

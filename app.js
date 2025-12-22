@@ -14,10 +14,11 @@ const state = {
 };
 
 const parseTimeToMinutes = (timeRaw) => {
-  const match = timeRaw.match(/(\d{1,2})h(\d{2})/i);
+  if (!timeRaw) return 0;
+  const match = timeRaw.match(/(\d{1,2})h(\d{2})?/i);
   if (!match) return 0;
   const hours = Number(match[1]);
-  const minutes = Number(match[2]);
+  const minutes = match[2] ? Number(match[2]) : 0;
   return hours * 60 + minutes;
 };
 
@@ -81,7 +82,7 @@ const vofFilterEl = document.querySelector('#vofFilter');
 const cinemaFilterEl = document.querySelector('#cinemaFilter');
 const cinemaFilterWrapEl = document.querySelector('#cinemaFilterWrap');
 const lastUpdatedEl = document.querySelector('#lastUpdated');
-const dateToggleEl = document.querySelector('#dateToggle');
+const showAllDatesEl = document.querySelector('#showAllDates');
 
 const buildMovieOptions = () => {
   const todayISO = getTodayISO();
@@ -109,14 +110,18 @@ const buildCinemaOptions = () => {
   cinemas.forEach((cinema) => {
     const option = document.createElement('option');
     option.value = cinema;
-    option.textContent = cinema;
+    option.textContent = formatCinemaName(cinema);
     cinemaFilterEl.appendChild(option);
   });
 };
 
 const formatCinemaName = (name) => {
   if (!name) return '';
-  return name.split('–')[0].trim();
+  const city = name.split('–')[0].trim();
+  const lower = city.toLocaleLowerCase('fr');
+  let titled = lower.replace(/(^|[\\s-])([\\p{L}])/gu, (match, sep, chr) => `${sep}${chr.toLocaleUpperCase('fr')}`);
+  titled = titled.replace(/\\b(En|Les|La|Le|De|Du|Des)\\b/g, (match) => match.toLocaleLowerCase('fr'));
+  return titled;
 };
 
 const buildShowtimeRow = (item, options = {}) => {
@@ -124,6 +129,11 @@ const buildShowtimeRow = (item, options = {}) => {
   row.className = 'showtime';
 
   const cells = [];
+
+  const time = document.createElement('div');
+  time.className = 'showtime__time';
+  time.textContent = item.timeRaw;
+  cells.push(time);
 
   if (!options.omitCinema) {
     const cinema = document.createElement('div');
@@ -134,7 +144,11 @@ const buildShowtimeRow = (item, options = {}) => {
   if (!options.omitMovie) {
     const movie = document.createElement('div');
     movie.className = 'showtime__title';
-    movie.textContent = item.movie_title;
+    if (item.version) {
+      movie.innerHTML = `${item.movie_title} <span class="showtime__version-inline">${item.version}</span>`;
+    } else {
+      movie.textContent = item.movie_title;
+    }
     cells.push(movie);
   }
 
@@ -149,14 +163,6 @@ const buildShowtimeRow = (item, options = {}) => {
     date.textContent = options.showWeekday ? formatDateNoWeekdayFR(item.dateISO) : formatDateFR(item.dateISO);
     cells.push(date);
   }
-
-  const time = document.createElement('div');
-  time.textContent = item.timeRaw;
-  cells.push(time);
-
-  const version = document.createElement('div');
-  version.textContent = item.version ?? '';
-  cells.push(version);
 
   row.append(...cells);
   return row;
@@ -276,17 +282,157 @@ const renderCinemaGroups = (groups) => {
       sectionTitle.className = 'group__section-title';
       sectionTitle.textContent = formatDateFR(dateISO);
 
-      const sectionMeta = document.createElement('div');
-      sectionMeta.className = 'group__section-meta';
-      sectionMeta.textContent = `${dateItems.length} séance${dateItems.length > 1 ? 's' : ''}`;
-
-      sectionHeader.append(sectionTitle, sectionMeta);
+      sectionHeader.append(sectionTitle);
       section.appendChild(sectionHeader);
 
       const list = document.createElement('div');
       list.className = 'showtimes';
       dateItems.forEach((item) =>
         list.appendChild(buildShowtimeRow(item, { omitCinema: true, omitDate: true }))
+      );
+      section.appendChild(list);
+      body.appendChild(section);
+    });
+
+    container.appendChild(body);
+    resultsEl.appendChild(container);
+  });
+};
+
+const sortItemsChronologically = (items) =>
+  [...items].sort((a, b) => {
+    if (a.timeMinutes !== b.timeMinutes) return a.timeMinutes - b.timeMinutes;
+    return a.movie_title.localeCompare(b.movie_title, 'fr');
+  });
+
+const renderDateGroups = (groups) => {
+  resultsEl.innerHTML = '';
+
+  if (groups.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.textContent = 'Aucune séance ne correspond à votre recherche.';
+    resultsEl.appendChild(empty);
+    return;
+  }
+
+  groups.forEach(({ title, items, meta }) => {
+    const container = document.createElement('article');
+    container.className = 'group';
+
+    const header = document.createElement('div');
+    header.className = 'group__header';
+
+    const titleEl = document.createElement('h2');
+    titleEl.className = 'group__title';
+    titleEl.textContent = title;
+
+    const metaEl = document.createElement('div');
+    metaEl.className = 'group__meta';
+    metaEl.textContent = meta;
+
+    header.append(titleEl, metaEl);
+    container.appendChild(header);
+
+    const byCinema = Array.from(groupBy(items, (item) => item.cinemaKey))
+      .map(([key, cinemaItems]) => ({
+        cinema: formatCinemaName(cinemaItems[0]?.cinema ?? key),
+        items: sortItemsChronologically(cinemaItems)
+      }))
+      .sort((a, b) => a.cinema.localeCompare(b.cinema, 'fr'));
+
+    byCinema.forEach(({ cinema, items: cinemaItems }) => {
+      const section = document.createElement('div');
+      section.className = 'group__section';
+
+      const sectionHeader = document.createElement('div');
+      sectionHeader.className = 'group__section-header';
+
+      const sectionTitle = document.createElement('h3');
+      sectionTitle.className = 'group__section-title';
+      sectionTitle.textContent = formatCinemaName(cinema);
+
+      sectionHeader.append(sectionTitle);
+      section.appendChild(sectionHeader);
+
+      const list = document.createElement('div');
+      list.className = 'showtimes';
+      cinemaItems.forEach((item) =>
+        list.appendChild(buildShowtimeRow(item, { omitCinema: true, omitDate: true }))
+      );
+      section.appendChild(list);
+      container.appendChild(section);
+    });
+
+    resultsEl.appendChild(container);
+  });
+};
+
+const renderFilmGroups = (groups) => {
+  resultsEl.innerHTML = '';
+
+  if (groups.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.textContent = 'Aucune séance ne correspond à votre recherche.';
+    resultsEl.appendChild(empty);
+    return;
+  }
+
+  groups.forEach(({ title, items, meta }) => {
+    const container = document.createElement('article');
+    container.className = 'group';
+    container.dataset.collapsible = 'film';
+    container.dataset.groupKey = title;
+
+    const header = document.createElement('div');
+    header.className = 'group__header';
+    header.setAttribute('role', 'button');
+    header.setAttribute('tabindex', '0');
+    const isExpanded = state.expandedMovies.has(title);
+    header.setAttribute('aria-expanded', String(isExpanded));
+    container.classList.toggle('is-collapsed', !isExpanded);
+
+    const titleEl = document.createElement('h2');
+    titleEl.className = 'group__title';
+    titleEl.textContent = title;
+
+    const metaEl = document.createElement('div');
+    metaEl.className = 'group__meta';
+    metaEl.textContent = meta;
+
+    header.append(titleEl, metaEl);
+    container.appendChild(header);
+
+    const body = document.createElement('div');
+    body.className = 'group__body';
+    body.hidden = !isExpanded;
+
+    const byDate = Array.from(groupBy(items, (item) => item.dateISO))
+      .map(([dateISO, dateItems]) => ({
+        dateISO,
+        items: sortItemsChronologically(dateItems)
+      }))
+      .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+
+    byDate.forEach(({ dateISO, items: dateItems }) => {
+      const section = document.createElement('div');
+      section.className = 'group__section';
+
+      const sectionHeader = document.createElement('div');
+      sectionHeader.className = 'group__section-header';
+
+      const sectionTitle = document.createElement('h3');
+      sectionTitle.className = 'group__section-title';
+      sectionTitle.textContent = formatDateFR(dateISO);
+
+      sectionHeader.append(sectionTitle);
+      section.appendChild(sectionHeader);
+
+      const list = document.createElement('div');
+      list.className = 'showtimes';
+      dateItems.forEach((item) =>
+        list.appendChild(buildShowtimeRow(item, { omitMovie: true, omitDate: true }))
       );
       section.appendChild(list);
       body.appendChild(section);
@@ -369,7 +515,7 @@ const render = () => {
         return dateA.localeCompare(dateB);
       });
 
-    renderGroups(groups, { omitDate: true });
+    renderDateGroups(groups);
     return;
   }
 
@@ -387,12 +533,7 @@ const render = () => {
     })
     .sort((a, b) => a.title.localeCompare(b.title, 'fr'));
 
-  renderGroups(groups, {
-    omitMovie: true,
-    showWeekday: true,
-    collapsibleKey: 'film',
-    isExpanded: (title) => state.expandedMovies.has(title)
-  });
+  renderFilmGroups(groups);
   initFilmCollapsibles();
 };
 
@@ -492,16 +633,6 @@ const renderLastUpdated = () => {
   lastUpdatedEl.textContent = `Dernière mise à jour : ${formatted}`;
 };
 
-const renderDateToggle = () => {
-  if (!dateToggleEl) return;
-  dateToggleEl.textContent = state.showAllDates ? 'À venir' : 'Afficher toutes les dates';
-};
-
-const toggleDateMode = () => {
-  state.showAllDates = !state.showAllDates;
-  renderDateToggle();
-  render();
-};
 
 const initTabs = () => {
   const buttons = Array.from(document.querySelectorAll('.segment__btn'));
@@ -554,12 +685,14 @@ cinemaFilterEl.addEventListener('change', (event) => {
   render();
 });
 
-dateToggleEl.addEventListener('click', toggleDateMode);
+showAllDatesEl.addEventListener('change', (event) => {
+  state.showAllDates = event.target.checked;
+  render();
+});
 
 buildMovieOptions();
 buildCinemaOptions();
 initTabs();
 updateCinemaFilterVisibility();
 renderLastUpdated();
-renderDateToggle();
 render();

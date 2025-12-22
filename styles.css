@@ -79,6 +79,7 @@ body {
 h1 {
   font-size: clamp(2rem, 4vw, 3.2rem);
   margin: 0 0 8px;
+  font-weight: 600;
 }
 
 .subhead {
@@ -95,6 +96,15 @@ h1 {
   border: 1px solid var(--stroke);
   box-shadow: var(--shadow);
   font-size: 1.1rem;
+}
+
+.controls-panel {
+  background: transparent;
+  border-radius: 0;
+  padding: 0 0 8px;
+  border: none;
+  box-shadow: none;
+  margin-bottom: 24px;
 }
 
 .controls {
@@ -140,6 +150,10 @@ h1 {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 16px;
+}
+
+.field--full {
+  grid-column: 1 / -1;
 }
 
 .field {
@@ -189,8 +203,8 @@ h1 {
 .group {
   border: 1px solid var(--stroke);
   border-radius: 16px;
-  padding: 18px 18px 14px;
-  background: #fffaf3;
+  padding: 22px 28px 18px;
+  background: white;
 }
 
 .group__header {
@@ -204,10 +218,10 @@ h1 {
   position: sticky;
   top: 12px;
   z-index: 2;
-  background: #fffaf3;
-  padding: 8px 6px;
-  margin-left: -6px;
-  margin-right: -6px;
+  background: white;
+  padding: 8px 0;
+  margin-left: 0;
+  margin-right: 0;
   border-radius: 12px;
 }
 
@@ -228,8 +242,11 @@ h1 {
 }
 
 .group__title {
-  font-size: 1.4rem;
+  font-size: 1.25rem;
   margin: 0;
+  font-weight: 500;
+  color: var(--muted);
+  text-transform: none;
 }
 
 .group__meta {
@@ -237,11 +254,20 @@ h1 {
   font-size: 0.9rem;
   margin-left: auto;
   text-align: right;
+  font-weight: 600;
+}
+
+.group[data-collapsible] .group__meta {
+  display: none;
+}
+
+.group[data-collapsible].is-collapsed .group__meta {
+  display: block;
 }
 
 .group__section {
-  padding: 12px 0 4px;
-  border-top: 1px dashed var(--stroke);
+  padding: 18px 0 6px;
+  border-top: none;
 }
 
 .group__section-header {
@@ -250,11 +276,16 @@ h1 {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(225, 216, 204, 0.55);
 }
 
 .group__section-title {
-  font-size: 1.05rem;
+  font-size: 1rem;
   margin: 0;
+  font-weight: 500;
+  color: var(--muted);
+  text-transform: none;
 }
 
 .group__section-meta {
@@ -264,28 +295,52 @@ h1 {
 
 .showtimes {
   display: grid;
-  gap: 10px;
+  gap: 4px;
 }
 
 .showtime {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 0.6em;
   align-items: center;
-  padding: 10px 12px;
+  justify-content: flex-start;
+  padding: 10px 0;
   border-radius: 12px;
-  background: white;
-  border: 1px solid var(--stroke);
+  background: transparent;
+  border: none;
   font-size: 1.05rem;
 }
 
+.showtime + .showtime {
+  padding-top: 4px;
+}
+
 .showtime > div:not(.showtime__links) {
-  flex: 1 1 160px;
-  min-width: 120px;
+  flex: 0 0 auto;
+  min-width: 0;
 }
 
 .showtime__title {
-  flex: 2 1 260px;
+  flex: 1 1 auto;
+  color: var(--ink);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.showtime__time {
+  flex: 0 0 4.5em;
+  width: 4.5em;
+  min-width: 4.5em;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "onum" 1;
+}
+
+.showtime__version-inline {
+  color: var(--muted);
+  font-weight: 500;
 }
 
 .showtime strong {
@@ -325,79 +380,6 @@ h1 {
   font-size: 0.9rem;
 }
 
-@media (max-width: 900px) {
-  .showtime {
-    align-items: flex-start;
-  }
-
-  .showtime > div:not(.showtime__links) {
-    flex: 1 1 calc(50% - 10px);
-  }
-
-  .showtime__links {
-    justify-content: flex-start;
-    flex-basis: 100%;
-    margin-left: 0;
-  }
-}
-
-@media (max-width: 600px) {
-  .hero__content {
-    padding: 26px 22px;
-  }
-
-  .card {
-    padding: 20px;
-  }
-
   .group {
-    border: none;
-    background: transparent;
-    padding: 0;
+    padding: 18px 20px 14px;
   }
-
-  .group__header {
-    background: transparent;
-    padding: 0 0 6px;
-    margin: 0 0 10px;
-  }
-
-  .group__section {
-    border-top: none;
-    padding: 6px 0 2px;
-  }
-
-  .showtime {
-    border: none;
-    background: transparent;
-    padding: 6px 0;
-    gap: 12px;
-    flex-wrap: nowrap;
-  }
-
-  .showtime > div:not(.showtime__links) {
-    flex: 0 1 auto;
-    min-width: 0;
-  }
-
-  .showtime__title {
-    flex: 1 1 auto;
-  }
-
-  .showtime__links {
-    display: none;
-  }
-
-  .segment {
-    width: 100%;
-  }
-
-  .segment__btn {
-    flex: 1;
-    text-align: center;
-  }
-
-  .showtime > div:not(.showtime__links) {
-    flex-basis: auto;
-  }
-}
