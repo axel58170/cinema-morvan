@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Programme cinéma</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Space+Grotesk:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="hero">
+        <div class="hero__content">
+          <p class="eyebrow">Programme</p>
+          <h1>Programme cinéma</h1>
+          <p class="subhead">
+            Explorez les séances du Morvan par cinéma, par date ou par film. Recherchez, filtrez et partagez
+            en un clin d’œil.
+          </p>
+        </div>
+      </header>
+
+      <main class="card" aria-live="polite">
+        <section class="controls">
+          <div class="segment" role="tablist" aria-label="Modes d’affichage">
+            <button class="segment__btn" role="tab" aria-selected="true" data-mode="cinema">
+              Par cinéma
+            </button>
+            <button class="segment__btn" role="tab" aria-selected="false" data-mode="date">
+              Par date
+            </button>
+            <button class="segment__btn" role="tab" aria-selected="false" data-mode="film">
+              Par film
+            </button>
+          </div>
+
+          <div class="filters">
+            <label class="field">
+              <span>Période</span>
+              <button type="button" id="dateToggle" class="toggle-btn">
+                À venir
+              </button>
+            </label>
+            <label class="field">
+              <span>Film</span>
+              <select id="movieFilter">
+                <option value="all">Tous les films</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Version</span>
+              <select id="versionFilter">
+                <option value="all">Toutes</option>
+                <option value="VF">VF</option>
+                <option value="VOST">VOST</option>
+              </select>
+            </label>
+
+            <label class="field" id="cinemaFilterWrap">
+              <span>Cinéma</span>
+              <select id="cinemaFilter">
+                <option value="all">Tous les cinémas</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section class="results" id="results"></section>
+      </main>
+
+      <footer class="footer">
+        <p>
+          Aperçus via YouTube et Allociné — liens générés automatiquement, sans API.
+        </p>
+        <p id="lastUpdated"></p>
+      </footer>
+    </div>
+
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

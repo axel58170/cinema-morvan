@@ -1,7 +1,40 @@
-Ce dépôt regroupe les outils pour gérer et publier le programme des cinémas du Morvan.
+# Programme cinéma (statique)
 
-Il contient deux parties complémentaires. La première est un parser de programme qui transforme des données sources (listings de séances) en un format JSON propre et homogène. Ce JSON sert de source unique de vérité et peut être facilement mis à jour ou régénéré.
+Site web 100 % statique pour consulter un programme cinéma par cinéma, par date ou par film, avec recherche, filtres VF/VOST et liens d’aperçu.
 
-La seconde partie est un site web statique qui consomme ce JSON et permet de consulter le programme par cinéma, par date ou par film. Le site fonctionne entièrement côté client, sans backend, et peut être déployé gratuitement sur Netlify, GitHub Pages ou un service équivalent. Chaque film inclut des liens vers des aperçus (bandes-annonces via recherche YouTube) et des pages d’information (Allociné).
+Ce site fonctionne en `file://` sans CORS car il utilise des scripts classiques (pas d’import ES modules). Si vous souhaitez revenir aux modules ES, lancez un petit serveur local.
 
-L’objectif du projet est de rester volontairement simple, transparent et durable : données lisibles, aucune dépendance lourde, hébergement gratuit et maintenance minimale.
+## Comment modifier les données
+
+1) Ouvrir `data.js`.
+2) Remplacer ou compléter le tableau `PROGRAM`.
+3) Recharger `index.html` dans le navigateur.
+
+Le format attendu est :
+
+```js
+{
+  cinema: "Nom du cinéma",
+  movie_title: "Titre du film",
+  date: "YYYY-MM-DD",
+  time: "20h30",
+  version: "VF" // ou "VOST"
+}
+```
+
+## Déployer sur Netlify
+
+1) Ouvrir Netlify.
+2) Glisser-déposer le dossier contenant `index.html`, `styles.css`, `app.js`, `data.js`.
+3) Netlify détecte automatiquement un site statique et publie l’URL.
+
+## Déployer sur GitHub Pages
+
+1) Pousser ce dossier dans un repo GitHub.
+2) Dans GitHub : Settings → Pages.
+3) Sélectionner la branche (ex : `main`) et le dossier racine `/`.
+4) Enregistrer : l’URL publique est affichée après quelques secondes.
+
+## Liens d’aperçu
+
+Les liens “Aperçu” pointent vers une recherche YouTube (bande annonce) et “Allociné” vers une recherche Allociné. Ils ne nécessitent aucune API ni clé.
