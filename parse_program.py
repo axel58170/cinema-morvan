@@ -15,17 +15,20 @@ import base64
 import json
 import os
 import re
+import unicodedata
 import urllib.request
 import urllib.parse
 from dataclasses import dataclass
 from datetime import date
 from typing import Any, Dict, Iterable, List, Optional, Tuple
+from difflib import SequenceMatcher
 
 PDF_PATH = "INTERNET-MORVAN.pdf"  # adjust if needed
 MODEL = "mistral-ocr-latest"
 OCR_ENDPOINT = "https://api.mistral.ai/v1/ocr"
 DEFAULT_YEAR = 2025
 TMDB_API_BASE = "https://api.themoviedb.org/3"
+TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p"
 
 def _load_env_fallback(path: str = ".env") -> None:
     if not os.path.exists(path):
@@ -136,9 +139,66 @@ def _pick_trailer_url(videos_payload: Dict[str, Any]) -> Optional[str]:
     return f"https://www.youtube.com/watch?v={ranked[0][1]}"
 
 
-def fetch_tmdb_info(title: str, api_key: str) -> Dict[str, Optional[str]]:
+def _normalize_for_match(text: str) -> str:
+    if not text:
+        return ""
+    text = text.lower()
+    text = unicodedata.normalize("NFKD", text)
+    text = "".join(ch for ch in text if not unicodedata.combining(ch))
+    text = re.sub(r"[^a-z0-9]+", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _best_match_title(target: str, candidates: List[str]) -> Optional[str]:
+    if not target or not candidates:
+        return None
+    target_norm = _normalize_for_match(target)
+    best = None
+    best_score = 0.0
+    for cand in candidates:
+        cand_norm = _normalize_for_match(cand)
+        if not cand_norm:
+            continue
+        if target_norm == cand_norm:
+            return cand
+        score = SequenceMatcher(None, target_norm, cand_norm).ratio()
+        if target_norm in cand_norm or cand_norm in target_norm:
+            score = max(score, 0.9)
+        if score > best_score:
+            best_score = score
+            best = cand
+    if best_score >= 0.85:
+        return best
+    return None
+
+
+def _format_duration(minutes: Optional[int]) -> Optional[str]:
+    if not minutes:
+        return None
+    h = minutes // 60
+    m = minutes % 60
+    if m:
+        return f"{h}h{m:02d}"
+    return f"{h}h"
+
+
+def fetch_tmdb_details(title: str, api_key: str) -> Dict[str, Optional[str]]:
     if not title:
-        return {"original_title": None, "original_language": None, "yt_trailer_url": None}
+        return {
+            "original_title": None,
+            "original_language": None,
+            "yt_trailer_url": None,
+            "director": None,
+            "cast": None,
+            "genre": None,
+            "duration": None,
+            "blurb": None,
+            "release_date": None,
+            "poster_url": None,
+            "poster_url_w780": None,
+            "backdrop_url": None,
+            "source": None,
+        }
 
     query = urllib.parse.quote(title)
     search_url = (
@@ -148,29 +208,103 @@ def fetch_tmdb_info(title: str, api_key: str) -> Dict[str, Optional[str]]:
     try:
         payload = _http_get_json(search_url)
     except Exception:
-        return {"original_title": None, "original_language": None, "yt_trailer_url": None}
+        return {
+            "original_title": None,
+            "original_language": None,
+            "yt_trailer_url": None,
+            "director": None,
+            "cast": None,
+            "genre": None,
+            "duration": None,
+            "blurb": None,
+            "release_date": None,
+            "poster_url": None,
+            "poster_url_w780": None,
+            "backdrop_url": None,
+            "source": None,
+        }
 
     results = payload.get("results") or []
     if not results:
-        return {"original_title": None, "original_language": None, "yt_trailer_url": None}
+        return {
+            "original_title": None,
+            "original_language": None,
+            "yt_trailer_url": None,
+            "director": None,
+            "cast": None,
+            "genre": None,
+            "duration": None,
+            "blurb": None,
+            "release_date": None,
+            "poster_url": None,
+            "poster_url_w780": None,
+            "backdrop_url": None,
+            "source": None,
+        }
 
     first = results[0]
     if not isinstance(first, dict):
-        return {"original_title": None, "original_language": None, "yt_trailer_url": None}
+        return {
+            "original_title": None,
+            "original_language": None,
+            "yt_trailer_url": None,
+            "director": None,
+            "cast": None,
+            "genre": None,
+            "duration": None,
+            "blurb": None,
+            "release_date": None,
+            "poster_url": None,
+            "poster_url_w780": None,
+            "backdrop_url": None,
+            "source": None,
+        }
 
     movie_id = first.get("id")
     original_title = first.get("original_title")
     original_language = first.get("original_language")
     trailer_url = None
+    director = None
+    cast = None
+    genre = None
+    duration = None
+    blurb = first.get("overview")
+    release_date = first.get("release_date")
+    poster_url = None
+    poster_url_w780 = None
+    backdrop_url = None
 
     if movie_id:
-        videos_url = (
-            f"{TMDB_API_BASE}/movie/{movie_id}/videos?api_key={api_key}"
-            f"&language=fr-FR"
-        )
         try:
-            videos_payload = _http_get_json(videos_url)
+            details_url = (
+                f"{TMDB_API_BASE}/movie/{movie_id}?api_key={api_key}"
+                f"&language=fr-FR&append_to_response=credits,videos"
+            )
+            details = _http_get_json(details_url)
+            videos_payload = details.get("videos") or {}
             trailer_url = _pick_trailer_url(videos_payload)
+            runtime = details.get("runtime")
+            duration = _format_duration(runtime)
+            release_date = details.get("release_date") or release_date
+            poster_path = details.get("poster_path")
+            backdrop_path = details.get("backdrop_path")
+            if poster_path:
+                poster_url = f"{TMDB_IMAGE_BASE}/w342{poster_path}"
+                poster_url_w780 = f"{TMDB_IMAGE_BASE}/w780{poster_path}"
+            if backdrop_path:
+                backdrop_url = f"{TMDB_IMAGE_BASE}/w780{backdrop_path}"
+            genres = details.get("genres") or []
+            if genres:
+                genre = ", ".join(g.get("name") for g in genres if g.get("name"))
+            credits = details.get("credits") or {}
+            crew = credits.get("crew") or []
+            directors = [c.get("name") for c in crew if c.get("job") == "Director" and c.get("name")]
+            if directors:
+                director = ", ".join(directors)
+            cast_list = credits.get("cast") or []
+            top_cast = [c.get("name") for c in cast_list[:5] if c.get("name")]
+            if top_cast:
+                cast = ", ".join(top_cast)
         except Exception:
             trailer_url = None
 
@@ -178,6 +312,16 @@ def fetch_tmdb_info(title: str, api_key: str) -> Dict[str, Optional[str]]:
         "original_title": original_title,
         "original_language": original_language,
         "yt_trailer_url": trailer_url,
+        "director": director,
+        "cast": cast,
+        "genre": genre,
+        "duration": duration,
+        "blurb": blurb,
+        "release_date": release_date,
+        "poster_url": poster_url,
+        "poster_url_w780": poster_url_w780,
+        "backdrop_url": backdrop_url,
+        "source": "tmdb",
     }
 
 
@@ -365,6 +509,129 @@ def collect_page_texts(ocr_json: Dict[str, Any]) -> List[str]:
     return texts
 
 
+def _is_title_candidate(line: str) -> bool:
+    if not line:
+        return False
+    stripped = line.strip()
+    stripped = stripped.lstrip("# ").strip()
+    if not stripped:
+        return False
+    if "|" in stripped:
+        return False
+    if stripped.startswith("!["):
+        return False
+    if stripped.lower().startswith(("de ", "avec ")):
+        return False
+    if "http" in stripped.lower() or "www." in stripped.lower():
+        return False
+    if "€" in stripped:
+        return False
+    if len(stripped) < 3:
+        return False
+    ignore = {
+        "DOCUMENTAIRES",
+        "ÉVÉNEMENTS",
+        "EVENEMENTS",
+        "JEUNE PUBLIC & EN FAMILLE",
+        "JEUNE PUBLIC",
+        "CIN'ESPIÈGLE",
+        "CIN'ESPIEGLE",
+        "CINÉ-CONCERT",
+        "CINE-CONCERT",
+        "LES PIONNIERS DU CINEMA",
+        "LES PIONNIERS DU CINÉMA",
+        "CLAP CLASSIC",
+        "SEANCE PATRIMOINE",
+        "SEANCE PATRIMOINE",
+        "FAITS DIVERS",
+        "AVANT PREMIERE",
+        "AVANT PREMIÈRE",
+    }
+    upper = stripped.upper()
+    if upper in ignore or upper.startswith("AVANT PREMI"):
+        return False
+    letters = re.findall(r"[A-Za-zÀ-ÖØ-öø-ÿ]", stripped)
+    if not letters:
+        return False
+    upper_letters = [ch for ch in letters if ch.isupper()]
+    ratio = len(upper_letters) / max(1, len(letters))
+    return ratio >= 0.6
+
+
+def _parse_meta_line(line: str) -> Dict[str, Optional[str]]:
+    meta = {"director": None, "cast": None, "genre": None, "duration": None}
+    if not line:
+        return meta
+    parts = [p.strip() for p in line.split(" - ") if p.strip()]
+    duration_re = re.compile(r"\b\d+h(\d{2})?\b")
+    for part in parts:
+        if part.startswith("De "):
+            meta["director"] = part.replace("De ", "").strip()
+            continue
+        if part.startswith("Avec "):
+            meta["cast"] = part.replace("Avec ", "").strip()
+            continue
+        if duration_re.search(part):
+            meta["duration"] = duration_re.search(part).group(0)
+            continue
+    # Genre is typically the last non-duration, non-credit part
+    for part in reversed(parts):
+        if part.startswith("De ") or part.startswith("Avec "):
+            continue
+        if duration_re.search(part):
+            continue
+        meta["genre"] = part
+        break
+    return meta
+
+
+def extract_movie_blurbs(texts: List[str]) -> Dict[str, Dict[str, Optional[str]]]:
+    blurbs: Dict[str, Dict[str, Optional[str]]] = {}
+    for page_text in texts:
+        if not page_text:
+            continue
+        if "|" in page_text:
+            # Skip program tables; blurbs live on the non-tabular pages.
+            continue
+        lines = page_text.splitlines()
+        current_title = None
+        current_meta = None
+        buffer: List[str] = []
+        for raw in lines:
+            line = raw.strip()
+            if not line:
+                continue
+            if line.startswith("!["):
+                continue
+            if _is_title_candidate(line):
+                if current_title and current_meta:
+                    blurbs[current_title] = {
+                        "title": current_title,
+                        "meta_raw": current_meta,
+                        "blurb": " ".join(buffer).strip() if buffer else None,
+                        **(_parse_meta_line(current_meta) if current_meta else {}),
+                        "source": "pdf",
+                    }
+                current_title = line.lstrip("# ").strip()
+                current_meta = None
+                buffer = []
+                continue
+            if current_title:
+                if current_meta is None and (line.startswith("De ") or " - " in line):
+                    current_meta = line
+                else:
+                    buffer.append(line)
+        if current_title and current_meta:
+            blurbs[current_title] = {
+                "title": current_title,
+                "meta_raw": current_meta,
+                "blurb": " ".join(buffer).strip() if buffer else None,
+                **(_parse_meta_line(current_meta) if current_meta else {}),
+                "source": "pdf",
+            }
+    return blurbs
+
+
 def parse_markdown_row_from_line(line: str) -> Optional[List[str]]:
     if "|" not in line:
         return None
@@ -460,9 +727,7 @@ def process_tables(texts: List[str], year: int) -> List[Screening]:
 
 # ---- Main ----
 
-def extract_screenings(pdf_path: str) -> List[Dict[str, Any]]:
-    ocr_json = call_mistral_ocr(pdf_path)
-    texts = collect_page_texts(ocr_json)
+def build_screenings_from_texts(texts: List[str], tmdb_key: str) -> List[Dict[str, Any]]:
     screenings = process_tables(texts, year=DEFAULT_YEAR)
 
     uniq: Dict[Tuple[str, str, str, str, Optional[str]], Screening] = {}
@@ -472,7 +737,6 @@ def extract_screenings(pdf_path: str) -> List[Dict[str, Any]]:
 
     output = [s.__dict__ for s in uniq.values()]
 
-    tmdb_key = os.getenv("TMDB_API_KEY", "").strip()
     if not tmdb_key:
         return output
 
@@ -480,7 +744,7 @@ def extract_screenings(pdf_path: str) -> List[Dict[str, Any]]:
     for item in output:
         title = item.get("movie_title") or ""
         if title not in info_cache:
-            info_cache[title] = fetch_tmdb_info(title, tmdb_key)
+            info_cache[title] = fetch_tmdb_details(title, tmdb_key)
         info = info_cache[title]
         item["original_title"] = info.get("original_title")
         item["original_language"] = info.get("original_language")
@@ -492,6 +756,89 @@ def extract_screenings(pdf_path: str) -> List[Dict[str, Any]]:
             item["version"] = "VF"
 
     return output
+
+
+def extract_screenings(pdf_path: str) -> List[Dict[str, Any]]:
+    ocr_json = call_mistral_ocr(pdf_path)
+    texts = collect_page_texts(ocr_json)
+    tmdb_key = os.getenv("TMDB_API_KEY", "").strip()
+    return build_screenings_from_texts(texts, tmdb_key)
+
+
+def build_movies_from_texts(
+    texts: List[str],
+    screenings: List[Screening],
+    tmdb_key: str,
+) -> List[Dict[str, Any]]:
+    screening_titles = sorted({s.movie_title for s in screenings if s.movie_title})
+
+    blurbs = extract_movie_blurbs(texts)
+    blurb_titles = list(blurbs.keys())
+
+    tmdb_cache: Dict[str, Dict[str, Optional[str]]] = {}
+
+    movies: List[Dict[str, Any]] = []
+    for title in screening_titles:
+        matched = _best_match_title(title, blurb_titles)
+        blurb_info = blurbs.get(matched) if matched else None
+        tmdb_info: Dict[str, Optional[str]] = {}
+        if tmdb_key:
+            if title not in tmdb_cache:
+                tmdb_cache[title] = fetch_tmdb_details(title, tmdb_key)
+            tmdb_info = tmdb_cache[title]
+
+        entry: Dict[str, Any] = {
+            "movie_title": title,
+            "original_title": tmdb_info.get("original_title"),
+            "original_language": tmdb_info.get("original_language"),
+            "director": None,
+            "cast": None,
+            "genre": None,
+            "duration": None,
+            "blurb": None,
+            "source": None,
+            "yt_trailer_url": tmdb_info.get("yt_trailer_url"),
+            "release_date": tmdb_info.get("release_date"),
+            "poster_url": tmdb_info.get("poster_url"),
+            "poster_url_w780": tmdb_info.get("poster_url_w780"),
+            "backdrop_url": tmdb_info.get("backdrop_url"),
+        }
+
+        if blurb_info:
+            entry.update({
+                "director": blurb_info.get("director"),
+                "cast": blurb_info.get("cast"),
+                "genre": blurb_info.get("genre"),
+                "duration": blurb_info.get("duration"),
+                "blurb": blurb_info.get("blurb"),
+                "source": "pdf",
+            })
+        elif tmdb_info:
+            entry.update({
+                "director": tmdb_info.get("director"),
+                "cast": tmdb_info.get("cast"),
+                "genre": tmdb_info.get("genre"),
+                "duration": tmdb_info.get("duration"),
+                "blurb": tmdb_info.get("blurb"),
+                "release_date": tmdb_info.get("release_date"),
+                "poster_url": tmdb_info.get("poster_url"),
+                "poster_url_w780": tmdb_info.get("poster_url_w780"),
+                "backdrop_url": tmdb_info.get("backdrop_url"),
+                "source": "tmdb",
+            })
+        movies.append(entry)
+
+    return movies
+
+
+def extract_all(pdf_path: str) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    ocr_json = call_mistral_ocr(pdf_path)
+    texts = collect_page_texts(ocr_json)
+    screenings = process_tables(texts, year=DEFAULT_YEAR)
+    tmdb_key = os.getenv("TMDB_API_KEY", "").strip()
+    screenings_out = build_screenings_from_texts(texts, tmdb_key)
+    movies_out = build_movies_from_texts(texts, screenings, tmdb_key)
+    return screenings_out, movies_out
 
 
 if __name__ == "__main__":

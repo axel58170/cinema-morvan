@@ -174,6 +174,63 @@ h1 {
   background: white;
 }
 
+.dropdown {
+  position: relative;
+}
+
+.dropdown__button {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--stroke);
+  font-family: inherit;
+  font-size: 1rem;
+  background: white;
+  text-align: left;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.dropdown__button::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(45deg);
+  margin-top: -2px;
+}
+
+.dropdown__panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid var(--stroke);
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 16px 32px rgba(46, 36, 26, 0.12);
+  z-index: 5;
+  display: none;
+}
+
+.dropdown.is-open .dropdown__panel {
+  display: block;
+}
+
+.dropdown__panel .checkbox-group {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
 .checkbox-group {
   display: flex;
   flex-wrap: wrap;
@@ -203,13 +260,15 @@ h1 {
 .group {
   border: 1px solid var(--stroke);
   border-radius: 16px;
-  padding: 22px 28px 18px;
+  padding: 18px;
   background: white;
+  position: relative;
+  container-type: inline-size;
 }
 
 .group__header {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -223,6 +282,143 @@ h1 {
   margin-left: 0;
   margin-right: 0;
   border-radius: 12px;
+}
+
+.group__media {
+  flex: 0 0 auto;
+  margin-right: 20px;
+}
+
+.group__poster {
+  width: 256px;
+  height: 384px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--stroke);
+}
+
+.group__header {
+  align-items: flex-start;
+}
+
+.group__content {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: left;
+}
+
+.group__content .group__meta {
+  margin-left: 0;
+  text-align: left;
+  margin-top: 6px;
+}
+
+.group[data-layout="film"] .group__header {
+  flex-direction: column;
+  align-items: stretch;
+  position: static;
+}
+
+.group__head-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding-left: 44px;
+  padding-top: 26px;
+}
+
+.group__head-row .group__media {
+  margin-right: 0;
+  margin-left: 20px;
+}
+
+.group__head-row .group__hide-wrap {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.group__head-meta {
+  margin-top: 10px;
+  text-align: right;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.group__hide {
+  position: static;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid var(--stroke);
+  background: white;
+  color: var(--muted);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.group__hide:hover {
+  color: var(--ink);
+  border-color: var(--accent);
+}
+
+@container (max-width: 720px) {
+  .group__hide-wrap {
+    display: none;
+  }
+
+  .group[data-layout="film"] .group__head-row {
+    flex-direction: column;
+    padding-left: 0;
+    padding-top: 0;
+  }
+
+  .group[data-layout="film"] .group__head-row .group__media {
+    order: -1;
+    width: 100%;
+    margin: 0 0 16px 0;
+  }
+
+  .group[data-layout="film"] .group__head-row .group__poster {
+    width: 100%;
+    height: auto;
+  }
+}
+
+.group__film-meta {
+  font-size: 1rem;
+  color: var(--muted);
+  margin: 4px 0 0;
+}
+
+.group__film-blurb {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.98rem;
+}
+
+.show-more {
+  margin-top: 10px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  padding: 4px 0;
+  border-radius: 0;
+  font-weight: 500;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.show-more:hover {
+  color: var(--ink);
 }
 
 .group[data-collapsible] .group__header::after {
@@ -247,6 +443,16 @@ h1 {
   font-weight: 500;
   color: var(--muted);
   text-transform: none;
+}
+
+.group__title-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.group__title-link:hover,
+.group__title-link:focus-visible {
+  text-decoration: underline;
 }
 
 .group__meta {
@@ -327,6 +533,20 @@ h1 {
   display: inline-flex;
   align-items: baseline;
   gap: 6px;
+}
+
+.showtime__title + div {
+  margin-left: 1em;
+}
+
+.showtime__movie-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.showtime__movie-link:hover,
+.showtime__movie-link:focus-visible {
+  text-decoration: underline;
 }
 
 .showtime__time {

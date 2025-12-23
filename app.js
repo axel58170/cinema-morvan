@@ -1,4 +1,5 @@
 const program = window.PROGRAM || [];
+const moviesCatalog = window.MOVIES || [];
 const state = {
   mode: 'cinema',
   movieFilter: 'all',
@@ -7,10 +8,11 @@ const state = {
     vost: true,
     vof: true
   },
-  cinemaFilter: 'all',
+  cinemaFilters: new Set(),
   showAllDates: false,
   expandedCinemas: new Set(),
-  expandedMovies: new Set()
+  expandedMovies: new Set(),
+  hiddenMovies: new Set()
 };
 
 const parseTimeToMinutes = (timeRaw) => {
@@ -57,6 +59,49 @@ const groupBy = (list, keyFn) => {
   return map;
 };
 
+const normalize = (value) =>
+  (value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const moviesByTitle = new Map(
+  moviesCatalog.map((movie) => [normalize(movie.movie_title), movie])
+);
+
+const decodeEntities = (value) => {
+  if (!value) return '';
+  const textarea = document.createElement('textarea');
+  textarea.innerHTML = value;
+  return textarea.value;
+};
+
+const DEFAULT_POSTER =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="160" height="240" viewBox="0 0 160 240">` +
+      `<rect width="160" height="240" fill="#efe7dc"/>` +
+      `<text x="50%" y="50%" fill="#a79a8b" font-size="14" font-family="Alegreya Sans, sans-serif" text-anchor="middle">Film</text>` +
+    `</svg>`
+  );
+
+const setPosterImage = (img, movieData) => {
+  const poster342 = movieData?.poster_url;
+  const poster780 = movieData?.poster_url_w780;
+  const backdrop = movieData?.backdrop_url;
+  const fallback = poster342 || backdrop || DEFAULT_POSTER;
+  img.src = fallback;
+  if (poster342 && poster780) {
+    img.srcset = `${poster342} 342w, ${poster780} 780w`;
+    img.sizes = '(max-width: 700px) 100vw, 256px';
+  } else {
+    img.removeAttribute('srcset');
+    img.removeAttribute('sizes');
+  }
+};
 const getTodayISO = () => {
   const now = new Date();
   const y = now.getFullYear();
@@ -74,13 +119,19 @@ const records = program.map((item) => ({
   cinemaKey: item.cinema
 }));
 
+let allCinemas = [];
+
 const resultsEl = document.querySelector('#results');
 const movieFilterEl = document.querySelector('#movieFilter');
 const vfFilterEl = document.querySelector('#vfFilter');
 const vostFilterEl = document.querySelector('#vostFilter');
 const vofFilterEl = document.querySelector('#vofFilter');
-const cinemaFilterEl = document.querySelector('#cinemaFilter');
+const cinemaFiltersEl = document.querySelector('#cinemaFilters');
 const cinemaFilterWrapEl = document.querySelector('#cinemaFilterWrap');
+const versionDropdownButton = document.querySelector('#versionDropdownButton');
+const versionDropdownPanel = document.querySelector('#versionDropdownPanel');
+const cinemaDropdownButton = document.querySelector('#cinemaDropdownButton');
+const cinemaDropdownPanel = document.querySelector('#cinemaDropdownPanel');
 const lastUpdatedEl = document.querySelector('#lastUpdated');
 const showAllDatesEl = document.querySelector('#showAllDates');
 
@@ -107,11 +158,31 @@ const buildCinemaOptions = () => {
     new Set(records.map((item) => item.cinema))
   ).sort((a, b) => a.localeCompare(b, 'fr'));
 
+  allCinemas = cinemas;
+
   cinemas.forEach((cinema) => {
-    const option = document.createElement('option');
-    option.value = cinema;
-    option.textContent = formatCinemaName(cinema);
-    cinemaFilterEl.appendChild(option);
+    const label = document.createElement('label');
+    label.className = 'checkbox';
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.value = cinema;
+    input.checked = true;
+    state.cinemaFilters.add(cinema);
+    input.addEventListener('change', (event) => {
+      const value = event.target.value;
+      if (event.target.checked) {
+        state.cinemaFilters.add(value);
+      } else {
+        state.cinemaFilters.delete(value);
+      }
+      updateCinemaSummary();
+      render();
+    });
+
+    const span = document.createElement('span');
+    span.textContent = formatCinemaName(cinema);
+    label.append(input, span);
+    cinemaFiltersEl.appendChild(label);
   });
 };
 
@@ -122,6 +193,59 @@ const formatCinemaName = (name) => {
   let titled = lower.replace(/(^|[\\s-])([\\p{L}])/gu, (match, sep, chr) => `${sep}${chr.toLocaleUpperCase('fr')}`);
   titled = titled.replace(/\\b(En|Les|La|Le|De|Du|Des)\\b/g, (match) => match.toLocaleLowerCase('fr'));
   return titled;
+};
+
+const updateVersionSummary = () => {
+  if (!versionDropdownButton) return;
+  const versions = [
+    { key: 'vf', label: 'VF', checked: state.versionFilters.vf },
+    { key: 'vost', label: 'VOST', checked: state.versionFilters.vost },
+    { key: 'vof', label: 'VOF', checked: state.versionFilters.vof }
+  ];
+  const active = versions.filter((item) => item.checked);
+  let text = 'Toutes les versions';
+  if (active.length === 0) {
+    text = 'Aucune version';
+  } else if (active.length < versions.length) {
+    text = active.map((item) => item.label).join(', ');
+  }
+  versionDropdownButton.textContent = text;
+};
+
+const updateCinemaSummary = () => {
+  if (!cinemaDropdownButton) return;
+  const selected = Array.from(state.cinemaFilters);
+  let text = 'Tous les cinémas';
+  if (selected.length === 0) {
+    text = 'Aucun cinéma';
+  } else if (selected.length < allCinemas.length) {
+    if (selected.length <= 2) {
+      text = selected.map((cinema) => formatCinemaName(cinema)).join(', ');
+    } else {
+      text = `${selected.length} cinémas`;
+    }
+  }
+  cinemaDropdownButton.textContent = text;
+};
+
+const closeDropdowns = () => {
+  document.querySelectorAll('.dropdown.is-open').forEach((dropdown) => {
+    dropdown.classList.remove('is-open');
+    const button = dropdown.querySelector('.dropdown__button');
+    if (button) button.setAttribute('aria-expanded', 'false');
+  });
+};
+
+const toggleDropdown = (button, panel) => {
+  const dropdown = button?.closest('.dropdown');
+  if (!dropdown) return;
+  const isOpen = dropdown.classList.contains('is-open');
+  closeDropdowns();
+  dropdown.classList.toggle('is-open', !isOpen);
+  button.setAttribute('aria-expanded', String(!isOpen));
+  if (!isOpen) {
+    panel?.querySelector('input')?.focus();
+  }
 };
 
 const buildShowtimeRow = (item, options = {}) => {
@@ -145,9 +269,20 @@ const buildShowtimeRow = (item, options = {}) => {
     const movie = document.createElement('div');
     movie.className = 'showtime__title';
     if (item.version) {
-      movie.innerHTML = `${item.movie_title} <span class="showtime__version-inline">${item.version}</span>`;
+      const link = document.createElement('a');
+      link.className = 'showtime__movie-link';
+      link.href = `movie.html?title=${encodeURIComponent(item.movie_title)}`;
+      link.textContent = item.movie_title;
+      const version = document.createElement('span');
+      version.className = 'showtime__version-inline';
+      version.textContent = item.version;
+      movie.append(link, document.createTextNode(' '), version);
     } else {
-      movie.textContent = item.movie_title;
+      const link = document.createElement('a');
+      link.className = 'showtime__movie-link';
+      link.href = `movie.html?title=${encodeURIComponent(item.movie_title)}`;
+      link.textContent = item.movie_title;
+      movie.appendChild(link);
     }
     cells.push(movie);
   }
@@ -197,15 +332,80 @@ const renderGroups = (groups, options = {}) => {
       container.classList.toggle('is-collapsed', !isExpanded);
     }
 
+    const content = document.createElement('div');
+    content.className = 'group__content';
+
     const titleEl = document.createElement('h2');
     titleEl.className = 'group__title';
-    titleEl.textContent = title;
+    const titleLink = document.createElement('a');
+    titleLink.className = 'group__title-link';
+    titleLink.href = `movie.html?title=${encodeURIComponent(title)}`;
+    titleLink.textContent = title;
+    titleEl.appendChild(titleLink);
+    content.appendChild(titleEl);
+
+    let media = null;
+    if (options.collapsibleKey === 'film') {
+      container.dataset.layout = 'film';
+      const movieData = moviesByTitle.get(normalize(title));
+      if (movieData) {
+        media = document.createElement('div');
+        media.className = 'group__media';
+        const img = document.createElement('img');
+        img.className = 'group__poster';
+        img.alt = movieData?.movie_title ? `Affiche de ${movieData.movie_title}` : 'Affiche du film';
+        setPosterImage(img, movieData);
+        media.appendChild(img);
+      }
+      if (movieData) {
+        if (movieData.blurb) {
+          const blurb = document.createElement('p');
+          blurb.className = 'group__film-blurb';
+          blurb.textContent = decodeEntities(movieData.blurb);
+          content.appendChild(blurb);
+        }
+
+        const meta = document.createElement('p');
+        meta.className = 'group__film-meta';
+        const metaParts = [];
+        if (movieData.director) metaParts.push(decodeEntities(movieData.director));
+        if (movieData.cast) metaParts.push(`Avec ${decodeEntities(movieData.cast)}`);
+        if (movieData.release_date) {
+          const year = String(movieData.release_date).slice(0, 4);
+          if (year) metaParts.push(year);
+        }
+        meta.textContent = metaParts.join(' · ');
+        if (meta.textContent) {
+          content.appendChild(meta);
+        }
+      }
+    }
 
     const metaEl = document.createElement('div');
     metaEl.className = 'group__meta';
     metaEl.textContent = meta;
 
-    header.append(titleEl, metaEl);
+    if (options.collapsibleKey === 'film') {
+      if (metaEl.textContent) {
+        content.appendChild(metaEl);
+      }
+
+      const headRow = document.createElement('div');
+      headRow.className = 'group__head-row';
+      headRow.append(content);
+      if (media) headRow.append(media);
+
+      const metaRow = document.createElement('div');
+      metaRow.className = 'group__head-meta';
+      metaRow.textContent = metaEl.textContent;
+      if (metaRow.textContent) {
+        header.append(headRow, metaRow);
+      } else {
+        header.append(headRow);
+      }
+    } else {
+      header.append(content, metaEl);
+    }
 
     const body = document.createElement('div');
     body.className = 'group__body';
@@ -271,7 +471,10 @@ const renderCinemaGroups = (groups) => {
       }))
       .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
 
-    byDate.forEach(({ dateISO, items: dateItems }) => {
+    const MAX_DATES_PREVIEW = 3;
+    const hiddenSections = [];
+
+    byDate.forEach(({ dateISO, items: dateItems }, index) => {
       const section = document.createElement('div');
       section.className = 'group__section';
 
@@ -382,31 +585,97 @@ const renderFilmGroups = (groups) => {
   groups.forEach(({ title, items, meta }) => {
     const container = document.createElement('article');
     container.className = 'group';
-    container.dataset.collapsible = 'film';
-    container.dataset.groupKey = title;
+    container.dataset.layout = 'film';
 
     const header = document.createElement('div');
     header.className = 'group__header';
-    header.setAttribute('role', 'button');
-    header.setAttribute('tabindex', '0');
-    const isExpanded = state.expandedMovies.has(title);
-    header.setAttribute('aria-expanded', String(isExpanded));
-    container.classList.toggle('is-collapsed', !isExpanded);
+
+    const content = document.createElement('div');
+    content.className = 'group__content';
 
     const titleEl = document.createElement('h2');
     titleEl.className = 'group__title';
-    titleEl.textContent = title;
+    const titleLink = document.createElement('a');
+    titleLink.className = 'group__title-link';
+    titleLink.href = `movie.html?title=${encodeURIComponent(title)}`;
+    titleLink.textContent = title;
+    titleEl.appendChild(titleLink);
+    content.appendChild(titleEl);
 
-    const metaEl = document.createElement('div');
-    metaEl.className = 'group__meta';
-    metaEl.textContent = meta;
+    const movieData = moviesByTitle.get(normalize(title));
+    if (movieData?.blurb) {
+      const blurb = document.createElement('p');
+      blurb.className = 'group__film-blurb';
+      blurb.textContent = decodeEntities(movieData.blurb);
+      content.appendChild(blurb);
+    }
+    if (movieData) {
+      const metaLine = document.createElement('p');
+      metaLine.className = 'group__film-meta';
+      const metaParts = [];
+      if (movieData.director) metaParts.push(decodeEntities(movieData.director));
+      if (movieData.cast) metaParts.push(`Avec ${decodeEntities(movieData.cast)}`);
+      if (movieData.release_date) {
+        const year = String(movieData.release_date).slice(0, 4);
+        if (year) metaParts.push(year);
+      }
+      metaLine.textContent = metaParts.join(' · ');
+      if (metaLine.textContent) content.appendChild(metaLine);
+    }
 
-    header.append(titleEl, metaEl);
+    const media = document.createElement('div');
+    media.className = 'group__media';
+    const img = document.createElement('img');
+    img.className = 'group__poster';
+    img.alt = movieData?.movie_title ? `Affiche de ${movieData.movie_title}` : 'Affiche du film';
+    setPosterImage(img, movieData);
+    media.appendChild(img);
+
+    const hideBtn = document.createElement('button');
+    hideBtn.className = 'group__hide';
+    hideBtn.type = 'button';
+    hideBtn.setAttribute('aria-label', `Masquer ${title}`);
+    hideBtn.textContent = '×';
+    hideBtn.addEventListener('click', (event) => {
+      event.stopPropagation();
+      state.hiddenMovies.add(title);
+      container.remove();
+    });
+
+    const hideWrap = document.createElement('div');
+    hideWrap.className = 'group__hide-wrap';
+    hideWrap.appendChild(hideBtn);
+
+    const headRow = document.createElement('div');
+    headRow.className = 'group__head-row';
+    headRow.append(hideWrap, content, media);
+
+    header.append(headRow);
+
     container.appendChild(header);
 
-    const body = document.createElement('div');
-    body.className = 'group__body';
-    body.hidden = !isExpanded;
+    let touchStartX = null;
+    let touchStartY = null;
+    container.addEventListener('touchstart', (event) => {
+      if (event.target.closest('a, button')) return;
+      const touch = event.touches[0];
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+    }, { passive: true });
+
+    container.addEventListener('touchend', (event) => {
+      if (touchStartX === null || touchStartY === null) return;
+      const touch = event.changedTouches[0];
+      const deltaX = touch.clientX - touchStartX;
+      const deltaY = touch.clientY - touchStartY;
+      touchStartX = null;
+      touchStartY = null;
+      if (Math.abs(deltaY) > 60) return;
+      if (deltaX < -80) {
+        state.hiddenMovies.add(title);
+        container.remove();
+      }
+    });
 
     const byDate = Array.from(groupBy(items, (item) => item.dateISO))
       .map(([dateISO, dateItems]) => ({
@@ -415,7 +684,10 @@ const renderFilmGroups = (groups) => {
       }))
       .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
 
-    byDate.forEach(({ dateISO, items: dateItems }) => {
+    const MAX_DATES_PREVIEW = 3;
+    const hiddenSections = [];
+
+    byDate.forEach(({ dateISO, items: dateItems }, index) => {
       const section = document.createElement('div');
       section.className = 'group__section';
 
@@ -432,13 +704,41 @@ const renderFilmGroups = (groups) => {
       const list = document.createElement('div');
       list.className = 'showtimes';
       dateItems.forEach((item) =>
-        list.appendChild(buildShowtimeRow(item, { omitMovie: true, omitDate: true }))
+        list.appendChild(buildShowtimeRow(item, { omitMovie: true, omitDate: true, omitCinema: false }))
       );
       section.appendChild(list);
-      body.appendChild(section);
+      if (index >= MAX_DATES_PREVIEW) {
+        section.hidden = true;
+        hiddenSections.push(section);
+      }
+      content.appendChild(section);
     });
 
-    container.appendChild(body);
+    if (hiddenSections.length) {
+      const toggle = document.createElement('button');
+      toggle.className = 'show-more';
+      toggle.type = 'button';
+      toggle.textContent = 'Voir plus';
+      toggle.dataset.expanded = 'false';
+      toggle.addEventListener('click', () => {
+        const expanded = toggle.dataset.expanded === 'true';
+        if (expanded) {
+          hiddenSections.forEach((section) => {
+            section.hidden = true;
+          });
+          toggle.textContent = 'Voir plus';
+          toggle.dataset.expanded = 'false';
+        } else {
+          hiddenSections.forEach((section) => {
+            section.hidden = false;
+          });
+          toggle.textContent = 'Voir moins';
+          toggle.dataset.expanded = 'true';
+        }
+      });
+      content.appendChild(toggle);
+    }
+
     resultsEl.appendChild(container);
   });
 };
@@ -465,7 +765,10 @@ const buildFilteredList = () => {
       if (isVOF && !state.versionFilters.vof) {
         return false;
       }
-      if (state.cinemaFilter !== 'all' && item.cinema !== state.cinemaFilter) {
+      if (state.hiddenMovies.has(item.movie_title)) {
+        return false;
+      }
+      if (state.cinemaFilters.size && !state.cinemaFilters.has(item.cinema)) {
         return false;
       }
       return true;
@@ -534,7 +837,6 @@ const render = () => {
     .sort((a, b) => a.title.localeCompare(b.title, 'fr'));
 
   renderFilmGroups(groups);
-  initFilmCollapsibles();
 };
 
 const initCinemaCollapsibles = () => {
@@ -637,14 +939,14 @@ const renderLastUpdated = () => {
 const initTabs = () => {
   const buttons = Array.from(document.querySelectorAll('.segment__btn'));
 
-  const setActive = (button) => {
+  const setActive = (button, options = {}) => {
     buttons.forEach((btn) => {
       const isActive = btn === button;
       btn.setAttribute('aria-selected', String(isActive));
     });
     state.mode = button.dataset.mode;
     updateCinemaFilterVisibility();
-    render();
+    if (!options.silent) render();
   };
 
   buttons.forEach((button, index) => {
@@ -658,6 +960,11 @@ const initTabs = () => {
       setActive(buttons[nextIndex]);
     });
   });
+
+  const initial = buttons.find((btn) => btn.getAttribute('aria-selected') === 'true') || buttons[0];
+  if (initial) {
+    setActive(initial, { silent: true });
+  }
 };
 
 movieFilterEl.addEventListener('change', (event) => {
@@ -667,31 +974,54 @@ movieFilterEl.addEventListener('change', (event) => {
 
 vfFilterEl.addEventListener('change', (event) => {
   state.versionFilters.vf = event.target.checked;
+  updateVersionSummary();
   render();
 });
 
 vostFilterEl.addEventListener('change', (event) => {
   state.versionFilters.vost = event.target.checked;
+  updateVersionSummary();
   render();
 });
 
 vofFilterEl.addEventListener('change', (event) => {
   state.versionFilters.vof = event.target.checked;
+  updateVersionSummary();
   render();
 });
 
-cinemaFilterEl.addEventListener('change', (event) => {
-  state.cinemaFilter = event.target.value;
-  render();
-});
 
 showAllDatesEl.addEventListener('change', (event) => {
   state.showAllDates = event.target.checked;
   render();
 });
 
+versionDropdownButton?.addEventListener('click', (event) => {
+  event.stopPropagation();
+  toggleDropdown(versionDropdownButton, versionDropdownPanel);
+});
+
+cinemaDropdownButton?.addEventListener('click', (event) => {
+  event.stopPropagation();
+  toggleDropdown(cinemaDropdownButton, cinemaDropdownPanel);
+});
+
+versionDropdownPanel?.addEventListener('click', (event) => {
+  event.stopPropagation();
+});
+
+cinemaDropdownPanel?.addEventListener('click', (event) => {
+  event.stopPropagation();
+});
+
+document.addEventListener('click', () => {
+  closeDropdowns();
+});
+
 buildMovieOptions();
 buildCinemaOptions();
+updateVersionSummary();
+updateCinemaSummary();
 initTabs();
 updateCinemaFilterVisibility();
 renderLastUpdated();

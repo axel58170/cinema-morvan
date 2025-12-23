@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Détail du film</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css?v=20251222a" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="hero">
+        <div class="hero__content">
+          <p class="eyebrow">Film</p>
+          <h1 id="movieTitle">Détail du film</h1>
+          <p class="subhead" id="movieMeta"></p>
+        </div>
+      </header>
+
+      <main>
+        <section class="group" id="movieContent">
+          <div class="group__section">
+            <div class="group__section-header">
+              <h2 class="group__section-title">Résumé</h2>
+            </div>
+            <p id="movieBlurb"></p>
+            <p id="movieSource"></p>
+          </div>
+
+          <div class="group__section">
+            <div class="group__section-header">
+              <h2 class="group__section-title">Séances</h2>
+            </div>
+            <div id="movieScreenings" class="showtimes"></div>
+          </div>
+
+          <div class="group__section" id="movieTrailerSection">
+            <div class="group__section-header">
+              <h2 class="group__section-title">Bande-annonce</h2>
+            </div>
+            <div id="movieTrailer"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="data.js?v=20251222a"></script>
+    <script src="movies.js?v=20251222a"></script>
+    <script src="movie.js?v=20251222a"></script>
+  </body>
+</html>

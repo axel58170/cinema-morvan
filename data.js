@@ -1,4 +1,4 @@
-window.PROGRAM_LAST_UPDATED = "2025-12-22T12:31:12+00:00";
+window.PROGRAM_LAST_UPDATED = "2025-12-23T23:17:21+00:00";
 window.PROGRAM = [
   {
     "cinema": "LUZY – Le Vox",
@@ -42,6 +42,16 @@ window.PROGRAM = [
   },
   {
     "cinema": "LUZY – Le Vox",
+    "movie_title": "L'étranger - 2h",
+    "date": "2025-12-08",
+    "time": "18h",
+    "version": null,
+    "original_title": null,
+    "original_language": null,
+    "yt_trailer_url": null
+  },
+  {
+    "cinema": "LUZY – Le Vox",
     "movie_title": "Imago",
     "date": "2025-11-27",
     "time": "18h",
@@ -72,6 +82,16 @@ window.PROGRAM = [
   },
   {
     "cinema": "LUZY – Le Vox",
+    "movie_title": "Arco",
+    "date": "2025-12-08",
+    "time": "16h",
+    "version": null,
+    "original_title": "Arco",
+    "original_language": "fr",
+    "yt_trailer_url": "https://www.youtube.com/watch?v=e4RrOe8IbI8"
+  },
+  {
+    "cinema": "LUZY – Le Vox",
     "movie_title": "Le mariage de Verida",
     "date": "2025-12-02",
     "time": "18h",
@@ -85,6 +105,16 @@ window.PROGRAM = [
     "movie_title": "La femme la plus riche du monde",
     "date": "2025-11-28",
     "time": "20h30",
+    "version": null,
+    "original_title": "La Femme la plus riche du monde",
+    "original_language": "fr",
+    "yt_trailer_url": "https://www.youtube.com/watch?v=Cbvff_TBVfo"
+  },
+  {
+    "cinema": "SAINT-HONORÉ-LES-BAINS – Le Sélect",
+    "movie_title": "La femme la plus riche du monde",
+    "date": "2025-12-08",
+    "time": "16h30",
     "version": null,
     "original_title": "La Femme la plus riche du monde",
     "original_language": "fr",
@@ -111,6 +141,26 @@ window.PROGRAM = [
     "yt_trailer_url": null
   },
   {
+    "cinema": "SAINT-HONORÉ-LES-BAINS – Le Sélect",
+    "movie_title": "Imago",
+    "date": "2025-12-08",
+    "time": "19h",
+    "version": "VOST",
+    "original_title": "Imago",
+    "original_language": "cs",
+    "yt_trailer_url": null
+  },
+  {
+    "cinema": "SAINT-HONORÉ-LES-BAINS – Le Sélect",
+    "movie_title": "Arco",
+    "date": "2025-12-08",
+    "time": "15h",
+    "version": null,
+    "original_title": "Arco",
+    "original_language": "fr",
+    "yt_trailer_url": "https://www.youtube.com/watch?v=e4RrOe8IbI8"
+  },
+  {
     "cinema": "CHÂTEAU-CHINON – L’Étoile",
     "movie_title": "La femme la plus riche du monde",
     "date": "2025-11-27",
@@ -135,6 +185,16 @@ window.PROGRAM = [
     "movie_title": "L'étranger - 2h",
     "date": "2025-11-28",
     "time": "18h",
+    "version": null,
+    "original_title": null,
+    "original_language": null,
+    "yt_trailer_url": null
+  },
+  {
+    "cinema": "CHÂTEAU-CHINON – L’Étoile",
+    "movie_title": "L'étranger - 2h",
+    "date": "2025-12-08",
+    "time": "17h",
     "version": null,
     "original_title": null,
     "original_language": null,
@@ -1406,7 +1466,7 @@ window.PROGRAM = [
     "date": "2025-12-22",
     "time": "16h",
     "version": null,
-    "original_title": "La petite fanfare de Noël",
+    "original_title": "La Petite fanfare de Noël",
     "original_language": "fr",
     "yt_trailer_url": null
   },
@@ -1506,7 +1566,7 @@ window.PROGRAM = [
     "date": "2025-12-22",
     "time": "16h",
     "version": null,
-    "original_title": "La petite fanfare de Noël",
+    "original_title": "La Petite fanfare de Noël",
     "original_language": "fr",
     "yt_trailer_url": null
   },
@@ -1626,7 +1686,7 @@ window.PROGRAM = [
     "date": "2025-12-26",
     "time": "16h",
     "version": null,
-    "original_title": "La petite fanfare de Noël",
+    "original_title": "La Petite fanfare de Noël",
     "original_language": "fr",
     "yt_trailer_url": null
   },
@@ -1736,7 +1796,7 @@ window.PROGRAM = [
     "date": "2025-12-28",
     "time": "15h30",
     "version": null,
-    "original_title": "La petite fanfare de Noël",
+    "original_title": "La Petite fanfare de Noël",
     "original_language": "fr",
     "yt_trailer_url": null
   },

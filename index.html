@@ -30,14 +30,14 @@
 
       <section class="controls-panel" aria-live="polite">
         <div class="segment" role="tablist" aria-label="Modes d’affichage">
-          <button class="segment__btn" role="tab" aria-selected="true" data-mode="cinema">
+          <button class="segment__btn" role="tab" aria-selected="true" data-mode="film">
+            Par film
+          </button>
+          <button class="segment__btn" role="tab" aria-selected="false" data-mode="cinema">
             Par cinéma
           </button>
           <button class="segment__btn" role="tab" aria-selected="false" data-mode="date">
             Par date
-          </button>
-          <button class="segment__btn" role="tab" aria-selected="false" data-mode="film">
-            Par film
           </button>
         </div>
 
@@ -58,27 +58,51 @@
 
           <label class="field">
             <span>Version</span>
-            <div class="checkbox-group" id="versionFilter">
-              <label class="checkbox">
-                <input type="checkbox" id="vfFilter" checked />
-                <span>VF</span>
-              </label>
-              <label class="checkbox">
-                <input type="checkbox" id="vostFilter" checked />
-                <span>VOST</span>
-              </label>
-              <label class="checkbox">
-                <input type="checkbox" id="vofFilter" checked />
-                <span>VOF</span>
-              </label>
+            <div class="dropdown" data-dropdown="version">
+              <button
+                type="button"
+                class="dropdown__button"
+                id="versionDropdownButton"
+                aria-haspopup="true"
+                aria-expanded="false"
+              >
+                Toutes les versions
+              </button>
+              <div class="dropdown__panel" id="versionDropdownPanel">
+                <div class="checkbox-group" id="versionFilter">
+                  <label class="checkbox">
+                    <input type="checkbox" id="vfFilter" checked />
+                    <span>VF</span>
+                  </label>
+                  <label class="checkbox">
+                    <input type="checkbox" id="vostFilter" checked />
+                    <span>VOST</span>
+                  </label>
+                  <label class="checkbox">
+                    <input type="checkbox" id="vofFilter" checked />
+                    <span>VOF</span>
+                  </label>
+                </div>
+              </div>
             </div>
           </label>
 
           <label class="field" id="cinemaFilterWrap">
-            <span>Cinéma</span>
-            <select id="cinemaFilter">
-              <option value="all">Tous les cinémas</option>
-            </select>
+            <span>Cinémas</span>
+            <div class="dropdown" data-dropdown="cinema">
+              <button
+                type="button"
+                class="dropdown__button"
+                id="cinemaDropdownButton"
+                aria-haspopup="true"
+                aria-expanded="false"
+              >
+                Tous les cinémas
+              </button>
+              <div class="dropdown__panel" id="cinemaDropdownPanel">
+                <div class="checkbox-group" id="cinemaFilters"></div>
+              </div>
+            </div>
           </label>
         </div>
       </section>
@@ -103,6 +127,7 @@
     </div>
 
       <script src="data.js?v=20251222a"></script>
+      <script src="movies.js?v=20251222a"></script>
       <script src="app.js?v=20251222a"></script>
   </body>
 </html>

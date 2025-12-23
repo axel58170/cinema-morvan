@@ -37,6 +37,21 @@ Le format attendu est :
 3) Sélectionner la branche (ex : `main`) et le dossier racine `/`.
 4) Enregistrer : l’URL publique est affichée après quelques secondes.
 
-## Liens d’aperçu
+## Extraction mensuelle (scriptée)
 
-Les liens “Aperçu” pointent vers une recherche YouTube (bande annonce) et “Allociné” vers une recherche Allociné. Ils ne nécessitent aucune API ni clé.
+1) Renseigner `MISTRAL_API_KEY` et `TMDB_API_KEY` dans `.env`.
+2) Lancer :
+
+```bash
+python3 scripts/extract_month.py path/to/programme.pdf
+```
+
+Sorties :
+- `data.js` (séances)
+- `movies.json` (fiches films extraites du PDF, avec fallback TMDB si nécessaire)
+
+Les fiches films sont accessibles via `movie.html?title=...` (liens dans les séances).
+
+## Fiches films
+
+Les fiches films sont générées via `movies.json` et affichées sur `movie.html`. La bande-annonce provient de TMDB (YouTube).
