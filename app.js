@@ -63,7 +63,7 @@ const normalize = (value) =>
   (value || '')
     .toLowerCase()
     .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -190,7 +190,7 @@ const formatCinemaName = (name) => {
   if (!name) return '';
   const city = name.split('–')[0].trim();
   const lower = city.toLocaleLowerCase('fr');
-  let titled = lower.replace(/(^|[\\s-])([\\p{L}])/gu, (match, sep, chr) => `${sep}${chr.toLocaleUpperCase('fr')}`);
+  let titled = lower.replace(/(^|[\\s-])([A-Za-zÀ-ÖØ-öø-ÿ])/g, (match, sep, chr) => `${sep}${chr.toLocaleUpperCase('fr')}`);
   titled = titled.replace(/\\b(En|Les|La|Le|De|Du|Des)\\b/g, (match) => match.toLocaleLowerCase('fr'));
   return titled;
 };
