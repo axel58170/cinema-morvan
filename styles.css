@@ -383,7 +383,7 @@ body {
   position: sticky;
   top: 0;
   z-index: 5;
-  background: var(--bg);
+  background: transparent;
   padding: 6px 0 10px;
 }
 
@@ -972,10 +972,11 @@ body {
     gap: 12px;
   }
 
-  @media (max-width: 360px) {
-    .filters-toggle__text {
-      display: none;
-    }
+}
+
+@media (max-width: 360px) {
+  .filters-toggle__text {
+    display: none;
   }
 }
 
