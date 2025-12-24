@@ -1,5 +1,20 @@
-const program = window.PROGRAM || [];
-const moviesCatalog = window.MOVIES || [];
+// ==================================================
+// Configuration & constants
+// ==================================================
+
+const DEFAULT_POSTER =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="160" height="240" viewBox="0 0 160 240">` +
+      `<rect width="160" height="240" fill="#efe7dc"/>` +
+      `<text x="50%" y="50%" fill="#a79a8b" font-size="14" font-family="Alegreya Sans, sans-serif" text-anchor="middle">Film</text>` +
+    `</svg>`
+  );
+
+// ==================================================
+// Global application state
+// ==================================================
+
 const state = {
   mode: 'cinema',
   movieFilter: 'all',
@@ -14,6 +29,12 @@ const state = {
   expandedMovies: new Set(),
   hiddenMovies: new Set()
 };
+
+let allCinemas = [];
+
+// ==================================================
+// Utility helpers (pure functions)
+// ==================================================
 
 const parseTimeToMinutes = (timeRaw) => {
   if (!timeRaw) return 0;
@@ -68,10 +89,6 @@ const normalize = (value) =>
     .replace(/\s+/g, ' ')
     .trim();
 
-const moviesByTitle = new Map(
-  moviesCatalog.map((movie) => [normalize(movie.movie_title), movie])
-);
-
 const decodeEntities = (value) => {
   if (!value) return '';
   const textarea = document.createElement('textarea');
@@ -79,14 +96,14 @@ const decodeEntities = (value) => {
   return textarea.value;
 };
 
-const DEFAULT_POSTER =
-  'data:image/svg+xml;utf8,' +
-  encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="160" height="240" viewBox="0 0 160 240">` +
-      `<rect width="160" height="240" fill="#efe7dc"/>` +
-      `<text x="50%" y="50%" fill="#a79a8b" font-size="14" font-family="Alegreya Sans, sans-serif" text-anchor="middle">Film</text>` +
-    `</svg>`
-  );
+const formatCinemaName = (name) => {
+  if (!name) return '';
+  const city = name.split('–')[0].trim();
+  const lower = city.toLocaleLowerCase('fr');
+  let titled = lower.replace(/(^|[\\s-])([A-Za-zÀ-ÖØ-öø-ÿ])/g, (match, sep, chr) => `${sep}${chr.toLocaleUpperCase('fr')}`);
+  titled = titled.replace(/\\b(En|Les|La|Le|De|Du|Des)\\b/g, (match) => match.toLocaleLowerCase('fr'));
+  return titled;
+};
 
 const setPosterImage = (img, movieData) => {
   const poster342 = movieData?.poster_url;
@@ -102,6 +119,7 @@ const setPosterImage = (img, movieData) => {
     img.removeAttribute('sizes');
   }
 };
+
 const getTodayISO = () => {
   const now = new Date();
   const y = now.getFullYear();
@@ -109,6 +127,17 @@ const getTodayISO = () => {
   const d = String(now.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
 };
+
+// ==================================================
+// Data loading & normalization
+// ==================================================
+
+const program = window.PROGRAM || [];
+const moviesCatalog = window.MOVIES || [];
+
+const moviesByTitle = new Map(
+  moviesCatalog.map((movie) => [normalize(movie.movie_title), movie])
+);
 
 const records = program.map((item) => ({
   ...item,
@@ -119,7 +148,9 @@ const records = program.map((item) => ({
   cinemaKey: item.cinema
 }));
 
-let allCinemas = [];
+// ==================================================
+// Selectors & derived state (filtering, sorting)
+// ==================================================
 
 const resultsEl = document.querySelector('#results');
 const movieFilterEl = document.querySelector('#movieFilter');
@@ -186,15 +217,6 @@ const buildCinemaOptions = () => {
   });
 };
 
-const formatCinemaName = (name) => {
-  if (!name) return '';
-  const city = name.split('–')[0].trim();
-  const lower = city.toLocaleLowerCase('fr');
-  let titled = lower.replace(/(^|[\\s-])([A-Za-zÀ-ÖØ-öø-ÿ])/g, (match, sep, chr) => `${sep}${chr.toLocaleUpperCase('fr')}`);
-  titled = titled.replace(/\\b(En|Les|La|Le|De|Du|Des)\\b/g, (match) => match.toLocaleLowerCase('fr'));
-  return titled;
-};
-
 const updateVersionSummary = () => {
   if (!versionDropdownButton) return;
   const versions = [
@@ -228,25 +250,51 @@ const updateCinemaSummary = () => {
   cinemaDropdownButton.textContent = text;
 };
 
-const closeDropdowns = () => {
-  document.querySelectorAll('.dropdown.is-open').forEach((dropdown) => {
-    dropdown.classList.remove('is-open');
-    const button = dropdown.querySelector('.dropdown__button');
-    if (button) button.setAttribute('aria-expanded', 'false');
+const sortItemsChronologically = (items) =>
+  [...items].sort((a, b) => {
+    if (a.timeMinutes !== b.timeMinutes) return a.timeMinutes - b.timeMinutes;
+    return a.movie_title.localeCompare(b.movie_title, 'fr');
   });
+
+const buildFilteredList = () => {
+  const todayISO = getTodayISO();
+  return records
+    .filter((item) => {
+      if (!state.showAllDates && item.dateISO < todayISO) {
+        return false;
+      }
+      if (state.movieFilter !== 'all' && item.movie_title !== state.movieFilter) {
+        return false;
+      }
+      const version = (item.version || '').toUpperCase();
+      const originalLanguage = (item.original_language || '').toLowerCase();
+      const isVOF = !version && originalLanguage === 'fr';
+      if (version === 'VOST' && !state.versionFilters.vost) {
+        return false;
+      }
+      if (version === 'VF' && !state.versionFilters.vf) {
+        return false;
+      }
+      if (isVOF && !state.versionFilters.vof) {
+        return false;
+      }
+      if (state.hiddenMovies.has(item.movie_title)) {
+        return false;
+      }
+      if (state.cinemaFilters.size && !state.cinemaFilters.has(item.cinema)) {
+        return false;
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      if (a.dateISO !== b.dateISO) return a.dateISO.localeCompare(b.dateISO);
+      return a.timeMinutes - b.timeMinutes;
+    });
 };
 
-const toggleDropdown = (button, panel) => {
-  const dropdown = button?.closest('.dropdown');
-  if (!dropdown) return;
-  const isOpen = dropdown.classList.contains('is-open');
-  closeDropdowns();
-  dropdown.classList.toggle('is-open', !isOpen);
-  button.setAttribute('aria-expanded', String(!isOpen));
-  if (!isOpen) {
-    panel?.querySelector('input')?.focus();
-  }
-};
+// ==================================================
+// Rendering (DOM creation & updates)
+// ==================================================
 
 const buildShowtimeRow = (item, options = {}) => {
   const row = document.createElement('div');
@@ -502,12 +550,6 @@ const renderCinemaGroups = (groups) => {
   });
 };
 
-const sortItemsChronologically = (items) =>
-  [...items].sort((a, b) => {
-    if (a.timeMinutes !== b.timeMinutes) return a.timeMinutes - b.timeMinutes;
-    return a.movie_title.localeCompare(b.movie_title, 'fr');
-  });
-
 const renderDateGroups = (groups) => {
   resultsEl.innerHTML = '';
 
@@ -743,42 +785,6 @@ const renderFilmGroups = (groups) => {
   });
 };
 
-const buildFilteredList = () => {
-  const todayISO = getTodayISO();
-  return records
-    .filter((item) => {
-      if (!state.showAllDates && item.dateISO < todayISO) {
-        return false;
-      }
-      if (state.movieFilter !== 'all' && item.movie_title !== state.movieFilter) {
-        return false;
-      }
-      const version = (item.version || '').toUpperCase();
-      const originalLanguage = (item.original_language || '').toLowerCase();
-      const isVOF = !version && originalLanguage === 'fr';
-      if (version === 'VOST' && !state.versionFilters.vost) {
-        return false;
-      }
-      if (version === 'VF' && !state.versionFilters.vf) {
-        return false;
-      }
-      if (isVOF && !state.versionFilters.vof) {
-        return false;
-      }
-      if (state.hiddenMovies.has(item.movie_title)) {
-        return false;
-      }
-      if (state.cinemaFilters.size && !state.cinemaFilters.has(item.cinema)) {
-        return false;
-      }
-      return true;
-    })
-    .sort((a, b) => {
-      if (a.dateISO !== b.dateISO) return a.dateISO.localeCompare(b.dateISO);
-      return a.timeMinutes - b.timeMinutes;
-    });
-};
-
 const render = () => {
   const filtered = buildFilteredList();
 
@@ -814,7 +820,7 @@ const render = () => {
       }))
       .sort((a, b) => {
         const dateA = a.items[0]?.dateISO ?? '';
-        const dateB = b.items[0]?.dateISO ?? '';
+        const dateB = a.items[0]?.dateISO ?? '';
         return dateA.localeCompare(dateB);
       });
 
@@ -837,6 +843,30 @@ const render = () => {
     .sort((a, b) => a.title.localeCompare(b.title, 'fr'));
 
   renderFilmGroups(groups);
+};
+
+// ==================================================
+// Event handlers & wiring
+// ==================================================
+
+const closeDropdowns = () => {
+  document.querySelectorAll('.dropdown.is-open').forEach((dropdown) => {
+    dropdown.classList.remove('is-open');
+    const button = dropdown.querySelector('.dropdown__button');
+    if (button) button.setAttribute('aria-expanded', 'false');
+  });
+};
+
+const toggleDropdown = (button, panel) => {
+  const dropdown = button?.closest('.dropdown');
+  if (!dropdown) return;
+  const isOpen = dropdown.classList.contains('is-open');
+  closeDropdowns();
+  dropdown.classList.toggle('is-open', !isOpen);
+  button.setAttribute('aria-expanded', String(!isOpen));
+  if (!isOpen) {
+    panel?.querySelector('input')?.focus();
+  }
 };
 
 const initCinemaCollapsibles = () => {
@@ -935,7 +965,6 @@ const renderLastUpdated = () => {
   lastUpdatedEl.textContent = `Dernière mise à jour : ${formatted}`;
 };
 
-
 const initTabs = () => {
   const buttons = Array.from(document.querySelectorAll('.segment__btn'));
 
@@ -967,6 +996,10 @@ const initTabs = () => {
   }
 };
 
+// ==================================================
+// App initialization / bootstrap
+// ==================================================
+
 movieFilterEl.addEventListener('change', (event) => {
   state.movieFilter = event.target.value;
   render();
@@ -989,7 +1022,6 @@ vofFilterEl.addEventListener('change', (event) => {
   updateVersionSummary();
   render();
 });
-
 
 showAllDatesEl.addEventListener('change', (event) => {
   state.showAllDates = event.target.checked;
