@@ -1,4 +1,4 @@
-window.PROGRAM_LAST_UPDATED = "2025-12-24T11:25:39+00:00";
+window.PROGRAM_LAST_UPDATED = "2025-12-24T21:19:33+00:00";
 window.PROGRAM = [
   {
     "cinema": "LUZY – Le Vox",

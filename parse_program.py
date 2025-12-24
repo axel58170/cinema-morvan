@@ -20,6 +20,7 @@ from ocr.mistral import extract_raw_texts
 from parsing.screenings import parse_screenings, screenings_to_records
 from rules.rules import Rules, ScreeningRecord, apply_rules, load_rules
 from movies.blurbs import build_movies_from_texts
+from typography import normalize_french_typography
 
 PDF_PATH = "INTERNET-MORVAN.pdf"  # adjust if needed
 
@@ -27,7 +28,7 @@ PDF_PATH = "INTERNET-MORVAN.pdf"  # adjust if needed
 
 
 def normalize_texts(texts: List[str]) -> List[str]:
-    return texts
+    return [normalize_french_typography(text) for text in texts]
 
 def records_to_dicts(records: List[ScreeningRecord], include_tmdb: bool) -> List[Dict[str, Any]]:
     output: List[Dict[str, Any]] = []
