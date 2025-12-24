@@ -319,7 +319,7 @@ const buildActiveFilterChips = (filters) => {
 const updateActiveFilterUI = () => {
   const count = countActiveFilters(state);
   if (filtersBadgeEl) {
-    filtersBadgeEl.textContent = String(count);
+    filtersBadgeEl.textContent = count ? String(count) : '';
     filtersBadgeEl.style.display = count ? 'inline-flex' : 'none';
   }
   if (!activeFilterChipsEl) return;

@@ -380,14 +380,19 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--bg);
+  padding: 6px 0 10px;
 }
 
 .filters-toggle {
   display: none;
   align-items: center;
   gap: 8px;
-  border: 1px solid var(--stroke);
-  background: white;
+  border: 1px solid transparent;
+  background: transparent;
   border-radius: 999px;
   padding: 8px 12px;
   font-size: 0.95rem;
@@ -479,18 +484,20 @@ body {
 .filters-sheet__header {
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
+  padding: 6px 0 8px;
 }
 
 .filters-sheet__header h2 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1rem;
 }
 
 .filters-sheet__close {
   border: none;
   background: transparent;
-  font-size: 0.95rem;
+  font-size: 1.4rem;
+  line-height: 1;
   cursor: pointer;
   color: var(--muted);
 }
@@ -508,6 +515,22 @@ body {
   color: white;
   font-weight: 600;
   cursor: pointer;
+}
+
+.filters-sheet__section {
+  padding: 0 0 12px;
+  border-bottom: 1px solid rgba(225, 216, 204, 0.55);
+  margin-bottom: 12px;
+}
+
+.filters-sheet__label {
+  margin: 0 0 6px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.filters-sheet__toggle {
+  margin-bottom: 4px;
 }
 
 .group {
@@ -822,10 +845,24 @@ body {
     bottom: 0;
     background: white;
     border-radius: 18px 18px 0 0;
-    padding: 16px 20px 20px;
+    padding: 12px 20px 0;
     box-shadow: 0 -18px 40px rgba(30, 26, 23, 0.22);
     max-height: 85vh;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .filters-sheet__body {
+    overflow-y: auto;
+    padding-bottom: 16px;
+  }
+
+  .filters-sheet__footer {
+    position: sticky;
+    bottom: 0;
+    padding: 12px 0 calc(12px + env(safe-area-inset-bottom));
+    background: white;
   }
 
   .filters-sheet__header,
