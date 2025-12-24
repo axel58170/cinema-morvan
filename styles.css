@@ -801,14 +801,120 @@ body {
 }
 
 @media (max-width: 720px) {
+  :root {
+    --space-xs: 6px;
+    --space-s: 10px;
+    --space-m: 14px;
+  }
+
+  .page {
+    padding: 24px 14px 40px;
+  }
+
   .filters-toggle {
     display: inline-flex;
+    padding: 6px 10px;
+    font-size: 0.85rem;
+    gap: 6px;
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .filters-toggle__icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .filters-toggle__text {
+    font-size: 0.85rem;
+  }
+
+  .filters-toggle__badge {
+    min-width: 18px;
+    height: 18px;
+    font-size: 0.7rem;
+  }
+
+  .segment {
+    padding: 2px;
+    gap: 2px;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .segment__btn {
+    padding: 6px 10px;
+    font-size: 0.85rem;
+    white-space: nowrap;
+  }
+
+  .controls-topbar {
+    gap: 8px;
+    padding: 4px 0 8px;
+    align-items: center;
   }
 
   .filter-chips {
     flex-wrap: nowrap;
     overflow-x: auto;
     padding-bottom: 6px;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .filter-chip {
+    padding: 4px 8px;
+    font-size: 0.78rem;
+  }
+
+  .results {
+    gap: 16px;
+  }
+
+  .group {
+    border-radius: 12px;
+    padding: 14px 14px 10px;
+  }
+
+  .group__header {
+    margin-bottom: 8px;
+  }
+
+  .group__poster {
+    border-radius: 6px;
+  }
+
+  .group__head-row {
+    gap: 12px;
+  }
+
+  .group__film-blurb {
+    margin-top: 4px;
+    font-size: 0.92rem;
+  }
+
+  .group__film-meta {
+    font-size: 0.92rem;
+  }
+
+  .group__title {
+    font-size: 1.05rem;
+  }
+
+  .showtime {
+    padding: 6px 0;
+    font-size: 0.98rem;
+  }
+
+  .showtimes {
+    gap: 2px;
+  }
+
+  .group__section {
+    padding: 12px 0 4px;
   }
 
   .filters-sheet {
@@ -835,8 +941,8 @@ body {
     right: 0;
     bottom: 0;
     background: white;
-    border-radius: 18px 18px 0 0;
-    padding: 12px 20px 0;
+    border-radius: 14px 14px 0 0;
+    padding: 10px 16px 0;
     box-shadow: 0 -18px 40px rgba(30, 26, 23, 0.22);
     max-height: 85vh;
     overflow-y: auto;
@@ -852,8 +958,24 @@ body {
     display: flex;
   }
 
+  .filters-sheet__header {
+    padding: 4px 0 6px;
+  }
+
+  .filters-sheet__section {
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+  }
+
   .filters {
     margin-top: 12px;
+    gap: 12px;
+  }
+
+  @media (max-width: 360px) {
+    .filters-toggle__text {
+      display: none;
+    }
   }
 }
 
