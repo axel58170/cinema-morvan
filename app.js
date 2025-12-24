@@ -170,7 +170,6 @@ const filtersBadgeEl = document.querySelector('#filtersBadge');
 const filtersSheetEl = document.querySelector('#filtersSheet');
 const filtersBackdropEl = document.querySelector('#filtersBackdrop');
 const filtersCloseEl = document.querySelector('#closeFilters');
-const filtersApplyEl = document.querySelector('#applyFilters');
 const activeFilterChipsEl = document.querySelector('#activeFilterChips');
 
 let pendingFilters = null;
@@ -388,6 +387,12 @@ const openFiltersSheet = (focusKey) => {
   syncControlsFromFilters(pendingFilters);
   filtersSheetEl.classList.add('is-open');
   filtersSheetEl.setAttribute('aria-hidden', 'false');
+  filtersSheetEl.dataset.pending = 'true';
+  filtersSheetEl.dataset.dragOffset = '0';
+  if (filtersSheetEl) {
+    const panel = filtersSheetEl.querySelector('.filters-sheet__panel');
+    if (panel) panel.style.transform = '';
+  }
   if (focusKey) {
     const focusMap = {
       dates: 'showAllDates',
@@ -415,6 +420,16 @@ const closeFiltersSheet = ({ apply = false } = {}) => {
   }
   filtersSheetEl.classList.remove('is-open');
   filtersSheetEl.setAttribute('aria-hidden', 'true');
+  delete filtersSheetEl.dataset.pending;
+  delete filtersSheetEl.dataset.dragOffset;
+  if (filtersSheetEl) {
+    const panel = filtersSheetEl.querySelector('.filters-sheet__panel');
+    if (panel) panel.style.transform = '';
+  }
+};
+
+const commitFiltersSheet = () => {
+  closeFiltersSheet({ apply: true });
 };
 
 const clearFilter = (key) => {
@@ -1246,20 +1261,47 @@ filtersToggleEl?.addEventListener('click', () => {
 });
 
 filtersBackdropEl?.addEventListener('click', () => {
-  closeFiltersSheet();
+  commitFiltersSheet();
 });
 
 filtersCloseEl?.addEventListener('click', () => {
-  closeFiltersSheet();
-});
-
-filtersApplyEl?.addEventListener('click', () => {
-  closeFiltersSheet({ apply: true });
+  commitFiltersSheet();
 });
 
 window.addEventListener('resize', () => {
   if (!isMobileLayout() && filtersSheetEl?.classList.contains('is-open')) {
-    closeFiltersSheet();
+    commitFiltersSheet();
+  }
+});
+
+let sheetDragStart = null;
+filtersSheetEl?.addEventListener('touchstart', (event) => {
+  if (!filtersSheetEl?.classList.contains('is-open')) return;
+  const panel = filtersSheetEl.querySelector('.filters-sheet__panel');
+  if (!panel) return;
+  const touch = event.touches[0];
+  sheetDragStart = {
+    y: touch.clientY,
+    panel
+  };
+}, { passive: true });
+
+filtersSheetEl?.addEventListener('touchmove', (event) => {
+  if (!sheetDragStart) return;
+  const touch = event.touches[0];
+  const deltaY = touch.clientY - sheetDragStart.y;
+  if (deltaY <= 0) return;
+  sheetDragStart.panel.style.transform = `translateY(${deltaY}px)`;
+  filtersSheetEl.dataset.dragOffset = String(deltaY);
+}, { passive: true });
+
+filtersSheetEl?.addEventListener('touchend', () => {
+  if (!sheetDragStart) return;
+  const delta = Number(filtersSheetEl.dataset.dragOffset || 0);
+  sheetDragStart.panel.style.transform = '';
+  sheetDragStart = null;
+  if (delta > 120) {
+    commitFiltersSheet();
   }
 });
 
