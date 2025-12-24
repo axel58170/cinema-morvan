@@ -209,7 +209,7 @@ window.MOVIES = [
   },
   {
     "movie_title": "La petite fanfare de Noel",
-    "original_title": "La Petite fanfare de Noël",
+    "original_title": "La petite fanfare de Noël",
     "original_language": "fr",
     "director": "Meike Fehre &amp; Sabine Dully",
     "cast": null,
@@ -219,8 +219,8 @@ window.MOVIES = [
     "source": "pdf",
     "yt_trailer_url": null,
     "release_date": "2025-11-26",
-    "poster_url": null,
-    "poster_url_w780": null,
+    "poster_url": "https://image.tmdb.org/t/p/w342/ljCnKIG4kfMbKHRirUB9ZpnzJiY.jpg",
+    "poster_url_w780": "https://image.tmdb.org/t/p/w780/ljCnKIG4kfMbKHRirUB9ZpnzJiY.jpg",
     "backdrop_url": null
   },
   {
@@ -363,8 +363,8 @@ window.MOVIES = [
     "source": "pdf",
     "yt_trailer_url": "https://www.youtube.com/watch?v=AYYmazQVIWg",
     "release_date": "2025-09-27",
-    "poster_url": "https://image.tmdb.org/t/p/w342/t8NilPWsiv3qc5FUWX1QnUj6fUG.jpg",
-    "poster_url_w780": "https://image.tmdb.org/t/p/w780/t8NilPWsiv3qc5FUWX1QnUj6fUG.jpg",
+    "poster_url": "https://image.tmdb.org/t/p/w342/ySU2kboUiK2IVs9dB0w4vnPiYgk.jpg",
+    "poster_url_w780": "https://image.tmdb.org/t/p/w780/ySU2kboUiK2IVs9dB0w4vnPiYgk.jpg",
     "backdrop_url": "https://image.tmdb.org/t/p/w780/uApLc1aWuzPW6g0J6jWdmHyewHM.jpg"
   },
   {

@@ -1,0 +1,7 @@
+{
+  "cinema_aliases": {},
+  "title_fixes": {},
+  "version_rules": {
+    "set_vf_if_original_language_not_fr_and_not_vost": true
+  }
+}
