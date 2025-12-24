@@ -259,7 +259,7 @@ const updateCinemaSummary = (filters = state) => {
   cinemaDropdownButton.textContent = text;
 };
 
-const isMobileLayout = () => window.matchMedia('(max-width: 700px)').matches;
+const isMobileLayout = () => window.matchMedia('(max-width: 720px)').matches;
 
 const cloneFiltersFromState = () => ({
   movieFilter: state.movieFilter,
