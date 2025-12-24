@@ -165,6 +165,15 @@ const cinemaDropdownButton = document.querySelector('#cinemaDropdownButton');
 const cinemaDropdownPanel = document.querySelector('#cinemaDropdownPanel');
 const lastUpdatedEl = document.querySelector('#lastUpdated');
 const showAllDatesEl = document.querySelector('#showAllDates');
+const filtersToggleEl = document.querySelector('#openFilters');
+const filtersBadgeEl = document.querySelector('#filtersBadge');
+const filtersSheetEl = document.querySelector('#filtersSheet');
+const filtersBackdropEl = document.querySelector('#filtersBackdrop');
+const filtersCloseEl = document.querySelector('#closeFilters');
+const filtersApplyEl = document.querySelector('#applyFilters');
+const activeFilterChipsEl = document.querySelector('#activeFilterChips');
+
+let pendingFilters = null;
 
 const buildMovieOptions = () => {
   const todayISO = getTodayISO();
@@ -201,13 +210,13 @@ const buildCinemaOptions = () => {
     state.cinemaFilters.add(cinema);
     input.addEventListener('change', (event) => {
       const value = event.target.value;
-      if (event.target.checked) {
-        state.cinemaFilters.add(value);
-      } else {
-        state.cinemaFilters.delete(value);
-      }
-      updateCinemaSummary();
-      render();
+      handleFilterChange((filters) => {
+        if (event.target.checked) {
+          filters.cinemaFilters.add(value);
+        } else {
+          filters.cinemaFilters.delete(value);
+        }
+      });
     });
 
     const span = document.createElement('span');
@@ -217,12 +226,12 @@ const buildCinemaOptions = () => {
   });
 };
 
-const updateVersionSummary = () => {
+const updateVersionSummary = (filters = state) => {
   if (!versionDropdownButton) return;
   const versions = [
-    { key: 'vf', label: 'VF', checked: state.versionFilters.vf },
-    { key: 'vost', label: 'VOST', checked: state.versionFilters.vost },
-    { key: 'vof', label: 'VOF', checked: state.versionFilters.vof }
+    { key: 'vf', label: 'VF', checked: filters.versionFilters.vf },
+    { key: 'vost', label: 'VOST', checked: filters.versionFilters.vost },
+    { key: 'vof', label: 'VOF', checked: filters.versionFilters.vof }
   ];
   const active = versions.filter((item) => item.checked);
   let text = 'Toutes les versions';
@@ -234,9 +243,9 @@ const updateVersionSummary = () => {
   versionDropdownButton.textContent = text;
 };
 
-const updateCinemaSummary = () => {
+const updateCinemaSummary = (filters = state) => {
   if (!cinemaDropdownButton) return;
-  const selected = Array.from(state.cinemaFilters);
+  const selected = Array.from(filters.cinemaFilters);
   let text = 'Tous les cinémas';
   if (selected.length === 0) {
     text = 'Aucun cinéma';
@@ -248,6 +257,186 @@ const updateCinemaSummary = () => {
     }
   }
   cinemaDropdownButton.textContent = text;
+};
+
+const isMobileLayout = () => window.matchMedia('(max-width: 700px)').matches;
+
+const cloneFiltersFromState = () => ({
+  movieFilter: state.movieFilter,
+  showAllDates: state.showAllDates,
+  versionFilters: { ...state.versionFilters },
+  cinemaFilters: new Set(state.cinemaFilters)
+});
+
+const getDefaultFilters = () => ({
+  movieFilter: 'all',
+  showAllDates: false,
+  versionFilters: { vf: true, vost: true, vof: true },
+  cinemaFilters: new Set(allCinemas)
+});
+
+const isDefaultVersions = (filters) =>
+  filters.versionFilters.vf && filters.versionFilters.vost && filters.versionFilters.vof;
+
+const isDefaultCinemas = (filters) =>
+  allCinemas.length === 0 || filters.cinemaFilters.size === allCinemas.length;
+
+const countActiveFilters = (filters) => {
+  let count = 0;
+  if (filters.showAllDates) count += 1;
+  if (filters.movieFilter !== 'all') count += 1;
+  if (!isDefaultVersions(filters)) count += 1;
+  if (!isDefaultCinemas(filters)) count += 1;
+  return count;
+};
+
+const buildActiveFilterChips = (filters) => {
+  const chips = [];
+  if (filters.showAllDates) {
+    chips.push({ key: 'dates', label: 'Dates passées' });
+  }
+  if (filters.movieFilter !== 'all') {
+    chips.push({ key: 'movie', label: `Film: ${filters.movieFilter}` });
+  }
+  if (!isDefaultVersions(filters)) {
+    const active = [];
+    if (filters.versionFilters.vf) active.push('VF');
+    if (filters.versionFilters.vost) active.push('VOST');
+    if (filters.versionFilters.vof) active.push('VOF');
+    chips.push({ key: 'version', label: `Version: ${active.length ? active.join(', ') : 'Aucune'}` });
+  }
+  if (!isDefaultCinemas(filters)) {
+    const selected = Array.from(filters.cinemaFilters);
+    if (selected.length <= 2) {
+      chips.push({ key: 'cinema', label: `Cinéma: ${selected.map(formatCinemaName).join(', ')}` });
+    } else {
+      chips.push({ key: 'cinema', label: `Cinémas: ${selected.length}` });
+    }
+  }
+  return chips;
+};
+
+const updateActiveFilterUI = () => {
+  const count = countActiveFilters(state);
+  if (filtersBadgeEl) {
+    filtersBadgeEl.textContent = String(count);
+    filtersBadgeEl.style.display = count ? 'inline-flex' : 'none';
+  }
+  if (!activeFilterChipsEl) return;
+  const chips = buildActiveFilterChips(state);
+  activeFilterChipsEl.innerHTML = '';
+  if (!chips.length) {
+    activeFilterChipsEl.style.display = 'none';
+    return;
+  }
+  activeFilterChipsEl.style.display = 'flex';
+  chips.forEach((chip) => {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'filter-chip';
+    wrapper.dataset.filter = chip.key;
+
+    const label = document.createElement('button');
+    label.type = 'button';
+    label.className = 'filter-chip__label';
+    label.textContent = chip.label;
+    label.addEventListener('click', () => openFiltersSheet(chip.key));
+
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'filter-chip__remove';
+    remove.setAttribute('aria-label', `Supprimer le filtre ${chip.label}`);
+    remove.textContent = '×';
+    remove.addEventListener('click', () => clearFilter(chip.key));
+
+    wrapper.append(label, remove);
+    activeFilterChipsEl.appendChild(wrapper);
+  });
+};
+
+const syncControlsFromFilters = (filters) => {
+  if (showAllDatesEl) showAllDatesEl.checked = filters.showAllDates;
+  if (movieFilterEl) movieFilterEl.value = filters.movieFilter;
+  if (vfFilterEl) vfFilterEl.checked = filters.versionFilters.vf;
+  if (vostFilterEl) vostFilterEl.checked = filters.versionFilters.vost;
+  if (vofFilterEl) vofFilterEl.checked = filters.versionFilters.vof;
+
+  const cinemaInputs = cinemaFiltersEl ? Array.from(cinemaFiltersEl.querySelectorAll('input[type=\"checkbox\"]')) : [];
+  cinemaInputs.forEach((input) => {
+    input.checked = filters.cinemaFilters.has(input.value);
+  });
+
+  updateVersionSummary(filters);
+  updateCinemaSummary(filters);
+};
+
+const applyPendingFilters = () => {
+  if (!pendingFilters) return;
+  state.movieFilter = pendingFilters.movieFilter;
+  state.showAllDates = pendingFilters.showAllDates;
+  state.versionFilters = { ...pendingFilters.versionFilters };
+  state.cinemaFilters = new Set(pendingFilters.cinemaFilters);
+  pendingFilters = null;
+  updateVersionSummary(state);
+  updateCinemaSummary(state);
+  updateActiveFilterUI();
+  render();
+};
+
+const openFiltersSheet = (focusKey) => {
+  if (!filtersSheetEl || !isMobileLayout()) return;
+  pendingFilters = cloneFiltersFromState();
+  syncControlsFromFilters(pendingFilters);
+  filtersSheetEl.classList.add('is-open');
+  filtersSheetEl.setAttribute('aria-hidden', 'false');
+  if (focusKey) {
+    const focusMap = {
+      dates: 'showAllDates',
+      movie: 'movieFilter',
+      version: 'versionDropdownButton',
+      cinema: 'cinemaDropdownButton'
+    };
+    const targetId = focusMap[focusKey];
+    if (targetId) {
+      setTimeout(() => {
+        const el = document.getElementById(targetId);
+        if (el) el.focus();
+      }, 0);
+    }
+  }
+};
+
+const closeFiltersSheet = ({ apply = false } = {}) => {
+  if (!filtersSheetEl) return;
+  if (apply) {
+    applyPendingFilters();
+  } else {
+    pendingFilters = null;
+    syncControlsFromFilters(state);
+  }
+  filtersSheetEl.classList.remove('is-open');
+  filtersSheetEl.setAttribute('aria-hidden', 'true');
+};
+
+const clearFilter = (key) => {
+  const defaults = getDefaultFilters();
+  if (key === 'dates') state.showAllDates = defaults.showAllDates;
+  if (key === 'movie') state.movieFilter = defaults.movieFilter;
+  if (key === 'version') state.versionFilters = { ...defaults.versionFilters };
+  if (key === 'cinema') state.cinemaFilters = new Set(defaults.cinemaFilters);
+
+  syncControlsFromFilters(state);
+  updateActiveFilterUI();
+  render();
+};
+
+const handleFilterChange = (updateFn) => {
+  const target = pendingFilters || state;
+  updateFn(target);
+  updateVersionSummary(target);
+  updateCinemaSummary(target);
+  if (pendingFilters) return;
+  updateActiveFilterUI();
+  render();
 };
 
 const sortItemsChronologically = (items) =>
@@ -1001,31 +1190,33 @@ const initTabs = () => {
 // ==================================================
 
 movieFilterEl.addEventListener('change', (event) => {
-  state.movieFilter = event.target.value;
-  render();
+  handleFilterChange((filters) => {
+    filters.movieFilter = event.target.value;
+  });
 });
 
 vfFilterEl.addEventListener('change', (event) => {
-  state.versionFilters.vf = event.target.checked;
-  updateVersionSummary();
-  render();
+  handleFilterChange((filters) => {
+    filters.versionFilters.vf = event.target.checked;
+  });
 });
 
 vostFilterEl.addEventListener('change', (event) => {
-  state.versionFilters.vost = event.target.checked;
-  updateVersionSummary();
-  render();
+  handleFilterChange((filters) => {
+    filters.versionFilters.vost = event.target.checked;
+  });
 });
 
 vofFilterEl.addEventListener('change', (event) => {
-  state.versionFilters.vof = event.target.checked;
-  updateVersionSummary();
-  render();
+  handleFilterChange((filters) => {
+    filters.versionFilters.vof = event.target.checked;
+  });
 });
 
 showAllDatesEl.addEventListener('change', (event) => {
-  state.showAllDates = event.target.checked;
-  render();
+  handleFilterChange((filters) => {
+    filters.showAllDates = event.target.checked;
+  });
 });
 
 versionDropdownButton?.addEventListener('click', (event) => {
@@ -1050,6 +1241,28 @@ document.addEventListener('click', () => {
   closeDropdowns();
 });
 
+filtersToggleEl?.addEventListener('click', () => {
+  openFiltersSheet();
+});
+
+filtersBackdropEl?.addEventListener('click', () => {
+  closeFiltersSheet();
+});
+
+filtersCloseEl?.addEventListener('click', () => {
+  closeFiltersSheet();
+});
+
+filtersApplyEl?.addEventListener('click', () => {
+  closeFiltersSheet({ apply: true });
+});
+
+window.addEventListener('resize', () => {
+  if (!isMobileLayout() && filtersSheetEl?.classList.contains('is-open')) {
+    closeFiltersSheet();
+  }
+});
+
 buildMovieOptions();
 buildCinemaOptions();
 updateVersionSummary();
@@ -1057,4 +1270,5 @@ updateCinemaSummary();
 initTabs();
 updateCinemaFilterVisibility();
 renderLastUpdated();
+updateActiveFilterUI();
 render();
