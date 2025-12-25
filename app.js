@@ -177,10 +177,12 @@ const activeFilterChipsEl = document.querySelector('#activeFilterChips');
 
 const buildMovieOptions = () => {
   const todayISO = getTodayISO();
+  const prevAllMovies = allMovies;
+  const allSelectedBefore = prevAllMovies.length > 0 && state.movieFilters.size === prevAllMovies.length;
   const movies = Array.from(
     new Set(
       records
-        .filter((item) => item.dateISO >= todayISO)
+        .filter((item) => state.showAllDates || item.dateISO >= todayISO)
         .map((item) => item.movie_title)
     )
   ).sort((a, b) => a.localeCompare(b, 'fr'));
@@ -189,7 +191,19 @@ const buildMovieOptions = () => {
   if (movieFilterEl) {
     movieFilterEl.innerHTML = '';
   }
-  state.movieFilters = new Set();
+
+  const nextSelection = new Set();
+  if (allSelectedBefore) {
+    movies.forEach((movie) => nextSelection.add(movie));
+  } else {
+    movies.forEach((movie) => {
+      if (state.movieFilters.has(movie)) {
+        nextSelection.add(movie);
+      }
+    });
+  }
+
+  state.movieFilters = nextSelection;
 
   movies.forEach((movie) => {
     const label = document.createElement('label');
@@ -197,8 +211,7 @@ const buildMovieOptions = () => {
     const input = document.createElement('input');
     input.type = 'checkbox';
     input.value = movie;
-    input.checked = true;
-    state.movieFilters.add(movie);
+    input.checked = state.movieFilters.has(movie);
     input.addEventListener('change', (event) => {
       const value = event.target.value;
       handleFilterChange((filters) => {
@@ -321,7 +334,7 @@ const countActiveFilters = (filters) => {
 const buildActiveFilterChips = (filters) => {
   const chips = [];
   if (filters.showAllDates) {
-    chips.push({ key: 'dates', label: 'Dates passées' });
+    chips.push({ key: 'dates', label: 'Dates passées incluses' });
   }
   if (!isDefaultMovies(filters)) {
     const selected = Array.from(filters.movieFilters);
@@ -1251,9 +1264,12 @@ movieToggleAllEl?.addEventListener('click', () => {
 });
 
 showAllDatesEl.addEventListener('change', (event) => {
-  handleFilterChange((filters) => {
-    filters.showAllDates = event.target.checked;
-  });
+  state.showAllDates = event.target.checked;
+  buildMovieOptions();
+  updateVersionSummary(state);
+  updateCinemaSummary(state);
+  updateActiveFilterUI();
+  render();
 });
 
 versionDropdownButton?.addEventListener('click', (event) => {
