@@ -132,6 +132,22 @@ body {
   gap: 16px;
 }
 
+.movie-select {
+  display: grid;
+  gap: 8px;
+}
+
+.movie-select__toggle {
+  align-self: flex-start;
+  border: 1px solid var(--stroke);
+  background: white;
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
 .field--full {
   grid-column: 1 / -1;
 }
@@ -212,6 +228,14 @@ body {
   flex-wrap: wrap;
   gap: 10px 14px;
   align-items: center;
+}
+
+#movieFilter {
+  flex-direction: column;
+  align-items: flex-start;
+  max-height: 260px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .checkbox {

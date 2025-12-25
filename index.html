@@ -61,20 +61,16 @@
               </div>
 
               <div class="filters-sheet__body">
-                <div class="filters-sheet__section">
-                  <p class="filters-sheet__label">Période</p>
-                  <label class="checkbox filters-sheet__toggle">
-                    <input type="checkbox" id="showAllDates" />
-                    <span>Afficher les dates passées</span>
-                  </label>
-                </div>
                 <div class="filters">
                   <label class="field">
                     <span>Film</span>
-                    <select id="movieFilter">
-                      <option value="all">Tous les films</option>
-                    </select>
-                  </label>
+                    <div class="movie-select">
+                    <button type="button" class="movie-select__toggle" id="movieToggleAll">
+                      Tout désélectionner
+                    </button>
+                    <div class="checkbox-group" id="movieFilter"></div>
+                  </div>
+                </label>
 
                   <label class="field">
                     <span>Version</span>
@@ -123,6 +119,13 @@
                         <div class="checkbox-group" id="cinemaFilters"></div>
                       </div>
                     </div>
+                  </label>
+                </div>
+                <div class="filters-sheet__section">
+                  <p class="filters-sheet__label">Période</p>
+                  <label class="checkbox filters-sheet__toggle">
+                    <input type="checkbox" id="showAllDates" />
+                    <span>Afficher les dates passées</span>
                   </label>
                 </div>
               </div>

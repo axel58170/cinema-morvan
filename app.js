@@ -17,7 +17,7 @@ const DEFAULT_POSTER =
 
 const state = {
   mode: 'cinema',
-  movieFilter: 'all',
+  movieFilters: new Set(),
   versionFilters: {
     vf: true,
     vost: true,
@@ -31,6 +31,7 @@ const state = {
 };
 
 let allCinemas = [];
+let allMovies = [];
 
 // ==================================================
 // Utility helpers (pure functions)
@@ -154,6 +155,7 @@ const records = program.map((item) => ({
 
 const resultsEl = document.querySelector('#results');
 const movieFilterEl = document.querySelector('#movieFilter');
+const movieToggleAllEl = document.querySelector('#movieToggleAll');
 const vfFilterEl = document.querySelector('#vfFilter');
 const vostFilterEl = document.querySelector('#vostFilter');
 const vofFilterEl = document.querySelector('#vofFilter');
@@ -182,13 +184,40 @@ const buildMovieOptions = () => {
         .map((item) => item.movie_title)
     )
   ).sort((a, b) => a.localeCompare(b, 'fr'));
+  allMovies = movies;
+
+  if (movieFilterEl) {
+    movieFilterEl.innerHTML = '';
+  }
+  state.movieFilters = new Set();
 
   movies.forEach((movie) => {
-    const option = document.createElement('option');
-    option.value = movie;
-    option.textContent = movie;
-    movieFilterEl.appendChild(option);
+    const label = document.createElement('label');
+    label.className = 'checkbox';
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.value = movie;
+    input.checked = true;
+    state.movieFilters.add(movie);
+    input.addEventListener('change', (event) => {
+      const value = event.target.value;
+      handleFilterChange((filters) => {
+        if (event.target.checked) {
+          filters.movieFilters.add(value);
+        } else {
+          filters.movieFilters.delete(value);
+        }
+      });
+      updateMovieToggleLabel(state);
+    });
+
+    const span = document.createElement('span');
+    span.textContent = movie;
+    label.append(input, span);
+    movieFilterEl.appendChild(label);
   });
+
+  updateMovieToggleLabel(state);
 };
 
 const buildCinemaOptions = () => {
@@ -257,8 +286,15 @@ const updateCinemaSummary = (filters = state) => {
   cinemaDropdownButton.textContent = text;
 };
 
+const updateMovieToggleLabel = (filters = state) => {
+  if (!movieToggleAllEl) return;
+  const selectedCount = filters.movieFilters.size;
+  const allSelected = allMovies.length > 0 && selectedCount === allMovies.length;
+  movieToggleAllEl.textContent = allSelected ? 'Tout désélectionner' : 'Tout sélectionner';
+};
+
 const getDefaultFilters = () => ({
-  movieFilter: 'all',
+  movieFilters: new Set(allMovies),
   showAllDates: false,
   versionFilters: { vf: true, vost: true, vof: true },
   cinemaFilters: new Set(allCinemas)
@@ -270,10 +306,13 @@ const isDefaultVersions = (filters) =>
 const isDefaultCinemas = (filters) =>
   allCinemas.length === 0 || filters.cinemaFilters.size === allCinemas.length;
 
+const isDefaultMovies = (filters) =>
+  allMovies.length === 0 || filters.movieFilters.size === allMovies.length;
+
 const countActiveFilters = (filters) => {
   let count = 0;
   if (filters.showAllDates) count += 1;
-  if (filters.movieFilter !== 'all') count += 1;
+  if (!isDefaultMovies(filters)) count += 1;
   if (!isDefaultVersions(filters)) count += 1;
   if (!isDefaultCinemas(filters)) count += 1;
   return count;
@@ -284,8 +323,15 @@ const buildActiveFilterChips = (filters) => {
   if (filters.showAllDates) {
     chips.push({ key: 'dates', label: 'Dates passées' });
   }
-  if (filters.movieFilter !== 'all') {
-    chips.push({ key: 'movie', label: `Film: ${filters.movieFilter}` });
+  if (!isDefaultMovies(filters)) {
+    const selected = Array.from(filters.movieFilters);
+    let label = '';
+    if (selected.length <= 2) {
+      label = `Film: ${selected.join(', ')}`;
+    } else {
+      label = `Films: ${selected.length}`;
+    }
+    chips.push({ key: 'movie', label });
   }
   if (!isDefaultVersions(filters)) {
     const active = [];
@@ -344,10 +390,14 @@ const updateActiveFilterUI = () => {
 
 const syncControlsFromFilters = (filters) => {
   if (showAllDatesEl) showAllDatesEl.checked = filters.showAllDates;
-  if (movieFilterEl) movieFilterEl.value = filters.movieFilter;
   if (vfFilterEl) vfFilterEl.checked = filters.versionFilters.vf;
   if (vostFilterEl) vostFilterEl.checked = filters.versionFilters.vost;
   if (vofFilterEl) vofFilterEl.checked = filters.versionFilters.vof;
+
+  const movieInputs = movieFilterEl ? Array.from(movieFilterEl.querySelectorAll('input[type="checkbox"]')) : [];
+  movieInputs.forEach((input) => {
+    input.checked = filters.movieFilters.has(input.value);
+  });
 
   const cinemaInputs = cinemaFiltersEl ? Array.from(cinemaFiltersEl.querySelectorAll('input[type=\"checkbox\"]')) : [];
   cinemaInputs.forEach((input) => {
@@ -356,6 +406,7 @@ const syncControlsFromFilters = (filters) => {
 
   updateVersionSummary(filters);
   updateCinemaSummary(filters);
+  updateMovieToggleLabel(filters);
 };
 
 const openFiltersSheet = (focusKey) => {
@@ -371,7 +422,7 @@ const openFiltersSheet = (focusKey) => {
   if (focusKey) {
     const focusMap = {
       dates: 'showAllDates',
-      movie: 'movieFilter',
+      movie: 'movieToggleAll',
       version: 'versionDropdownButton',
       cinema: 'cinemaDropdownButton'
     };
@@ -399,7 +450,7 @@ const closeFiltersSheet = () => {
 const clearFilter = (key) => {
   const defaults = getDefaultFilters();
   if (key === 'dates') state.showAllDates = defaults.showAllDates;
-  if (key === 'movie') state.movieFilter = defaults.movieFilter;
+  if (key === 'movie') state.movieFilters = new Set(defaults.movieFilters);
   if (key === 'version') state.versionFilters = { ...defaults.versionFilters };
   if (key === 'cinema') state.cinemaFilters = new Set(defaults.cinemaFilters);
 
@@ -430,8 +481,10 @@ const buildFilteredList = () => {
       if (!state.showAllDates && item.dateISO < todayISO) {
         return false;
       }
-      if (state.movieFilter !== 'all' && item.movie_title !== state.movieFilter) {
-        return false;
+      if (state.movieFilters.size && state.movieFilters.size < allMovies.length) {
+        if (!state.movieFilters.has(item.movie_title)) {
+          return false;
+        }
       }
       const version = (item.version || '').toUpperCase();
       const originalLanguage = (item.original_language || '').toLowerCase();
@@ -1167,12 +1220,6 @@ const initTabs = () => {
 // App initialization / bootstrap
 // ==================================================
 
-movieFilterEl.addEventListener('change', (event) => {
-  handleFilterChange((filters) => {
-    filters.movieFilter = event.target.value;
-  });
-});
-
 vfFilterEl.addEventListener('change', (event) => {
   handleFilterChange((filters) => {
     filters.versionFilters.vf = event.target.checked;
@@ -1189,6 +1236,18 @@ vofFilterEl.addEventListener('change', (event) => {
   handleFilterChange((filters) => {
     filters.versionFilters.vof = event.target.checked;
   });
+});
+
+movieToggleAllEl?.addEventListener('click', () => {
+  const allSelected = allMovies.length > 0 && state.movieFilters.size === allMovies.length;
+  handleFilterChange((filters) => {
+    if (allSelected) {
+      filters.movieFilters = new Set();
+    } else {
+      filters.movieFilters = new Set(allMovies);
+    }
+  });
+  syncControlsFromFilters(state);
 });
 
 showAllDatesEl.addEventListener('change', (event) => {
@@ -1217,6 +1276,15 @@ cinemaDropdownPanel?.addEventListener('click', (event) => {
 
 document.addEventListener('click', () => {
   closeDropdowns();
+});
+
+document.addEventListener('click', (event) => {
+  if (!filtersSheetEl?.classList.contains('is-open')) return;
+  const panel = filtersSheetEl.querySelector('.filters-sheet__panel');
+  if (!panel) return;
+  if (panel.contains(event.target)) return;
+  if (filtersToggleEl && filtersToggleEl.contains(event.target)) return;
+  closeFiltersSheet();
 });
 
 filtersToggleEl?.addEventListener('click', () => {
