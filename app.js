@@ -172,7 +172,6 @@ const filtersBackdropEl = document.querySelector('#filtersBackdrop');
 const filtersCloseEl = document.querySelector('#closeFilters');
 const activeFilterChipsEl = document.querySelector('#activeFilterChips');
 
-let pendingFilters = null;
 
 const buildMovieOptions = () => {
   const todayISO = getTodayISO();
@@ -257,15 +256,6 @@ const updateCinemaSummary = (filters = state) => {
   }
   cinemaDropdownButton.textContent = text;
 };
-
-const isMobileLayout = () => window.matchMedia('(max-width: 720px)').matches;
-
-const cloneFiltersFromState = () => ({
-  movieFilter: state.movieFilter,
-  showAllDates: state.showAllDates,
-  versionFilters: { ...state.versionFilters },
-  cinemaFilters: new Set(state.cinemaFilters)
-});
 
 const getDefaultFilters = () => ({
   movieFilter: 'all',
@@ -368,26 +358,11 @@ const syncControlsFromFilters = (filters) => {
   updateCinemaSummary(filters);
 };
 
-const applyPendingFilters = () => {
-  if (!pendingFilters) return;
-  state.movieFilter = pendingFilters.movieFilter;
-  state.showAllDates = pendingFilters.showAllDates;
-  state.versionFilters = { ...pendingFilters.versionFilters };
-  state.cinemaFilters = new Set(pendingFilters.cinemaFilters);
-  pendingFilters = null;
-  updateVersionSummary(state);
-  updateCinemaSummary(state);
-  updateActiveFilterUI();
-  render();
-};
-
 const openFiltersSheet = (focusKey) => {
-  if (!filtersSheetEl || !isMobileLayout()) return;
-  pendingFilters = cloneFiltersFromState();
-  syncControlsFromFilters(pendingFilters);
+  if (!filtersSheetEl) return;
+  syncControlsFromFilters(state);
   filtersSheetEl.classList.add('is-open');
   filtersSheetEl.setAttribute('aria-hidden', 'false');
-  filtersSheetEl.dataset.pending = 'true';
   filtersSheetEl.dataset.dragOffset = '0';
   if (filtersSheetEl) {
     const panel = filtersSheetEl.querySelector('.filters-sheet__panel');
@@ -410,26 +385,15 @@ const openFiltersSheet = (focusKey) => {
   }
 };
 
-const closeFiltersSheet = ({ apply = false } = {}) => {
+const closeFiltersSheet = () => {
   if (!filtersSheetEl) return;
-  if (apply) {
-    applyPendingFilters();
-  } else {
-    pendingFilters = null;
-    syncControlsFromFilters(state);
-  }
   filtersSheetEl.classList.remove('is-open');
   filtersSheetEl.setAttribute('aria-hidden', 'true');
-  delete filtersSheetEl.dataset.pending;
   delete filtersSheetEl.dataset.dragOffset;
   if (filtersSheetEl) {
     const panel = filtersSheetEl.querySelector('.filters-sheet__panel');
     if (panel) panel.style.transform = '';
   }
-};
-
-const commitFiltersSheet = () => {
-  closeFiltersSheet({ apply: true });
 };
 
 const clearFilter = (key) => {
@@ -445,11 +409,10 @@ const clearFilter = (key) => {
 };
 
 const handleFilterChange = (updateFn) => {
-  const target = pendingFilters || state;
+  const target = state;
   updateFn(target);
   updateVersionSummary(target);
   updateCinemaSummary(target);
-  if (pendingFilters) return;
   updateActiveFilterUI();
   render();
 };
@@ -1261,17 +1224,11 @@ filtersToggleEl?.addEventListener('click', () => {
 });
 
 filtersBackdropEl?.addEventListener('click', () => {
-  commitFiltersSheet();
+  closeFiltersSheet();
 });
 
 filtersCloseEl?.addEventListener('click', () => {
-  commitFiltersSheet();
-});
-
-window.addEventListener('resize', () => {
-  if (!isMobileLayout() && filtersSheetEl?.classList.contains('is-open')) {
-    commitFiltersSheet();
-  }
+  closeFiltersSheet();
 });
 
 let sheetDragStart = null;
@@ -1301,7 +1258,7 @@ filtersSheetEl?.addEventListener('touchend', () => {
   sheetDragStart.panel.style.transform = '';
   sheetDragStart = null;
   if (delta > 120) {
-    commitFiltersSheet();
+    closeFiltersSheet();
   }
 });
 

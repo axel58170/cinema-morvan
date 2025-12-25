@@ -50,88 +50,88 @@
             <span class="filters-toggle__text">Filtres</span>
             <span class="filters-toggle__badge" id="filtersBadge">0</span>
           </button>
+
+          <div class="filters-sheet" id="filtersSheet" aria-hidden="true">
+            <div class="filters-sheet__backdrop" id="filtersBackdrop"></div>
+            <div class="filters-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="filtersTitle">
+              <div class="filters-sheet__header">
+                <h2 id="filtersTitle">Filtres</h2>
+              <span class="filters-sheet__hint">Modifications en direct</span>
+                <button type="button" class="filters-sheet__close" id="closeFilters" aria-label="Fermer">×</button>
+              </div>
+
+              <div class="filters-sheet__body">
+                <div class="filters-sheet__section">
+                  <p class="filters-sheet__label">Période</p>
+                  <label class="checkbox filters-sheet__toggle">
+                    <input type="checkbox" id="showAllDates" />
+                    <span>Afficher les dates passées</span>
+                  </label>
+                </div>
+                <div class="filters">
+                  <label class="field">
+                    <span>Film</span>
+                    <select id="movieFilter">
+                      <option value="all">Tous les films</option>
+                    </select>
+                  </label>
+
+                  <label class="field">
+                    <span>Version</span>
+                    <div class="dropdown" data-dropdown="version">
+                      <button
+                        type="button"
+                        class="dropdown__button"
+                        id="versionDropdownButton"
+                        aria-haspopup="true"
+                        aria-expanded="false"
+                      >
+                        Toutes les versions
+                      </button>
+                      <div class="dropdown__panel" id="versionDropdownPanel">
+                        <div class="checkbox-group" id="versionFilter">
+                          <label class="checkbox">
+                            <input type="checkbox" id="vfFilter" checked />
+                            <span>VF</span>
+                          </label>
+                          <label class="checkbox">
+                            <input type="checkbox" id="vostFilter" checked />
+                            <span>VOST</span>
+                          </label>
+                          <label class="checkbox">
+                            <input type="checkbox" id="vofFilter" checked />
+                            <span>VOF</span>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </label>
+
+                  <label class="field" id="cinemaFilterWrap">
+                    <span>Cinémas</span>
+                    <div class="dropdown" data-dropdown="cinema">
+                      <button
+                        type="button"
+                        class="dropdown__button"
+                        id="cinemaDropdownButton"
+                        aria-haspopup="true"
+                        aria-expanded="false"
+                      >
+                        Tous les cinémas
+                      </button>
+                      <div class="dropdown__panel" id="cinemaDropdownPanel">
+                        <div class="checkbox-group" id="cinemaFilters"></div>
+                      </div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+            </div>
+          </div>
         </div>
 
         <div class="filter-chips" id="activeFilterChips"></div>
-
-        <div class="filters-sheet" id="filtersSheet" aria-hidden="true">
-          <div class="filters-sheet__backdrop" id="filtersBackdrop"></div>
-          <div class="filters-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="filtersTitle">
-            <div class="filters-sheet__header">
-              <h2 id="filtersTitle">Filtres</h2>
-              <span class="filters-sheet__hint">Fermer pour appliquer</span>
-              <button type="button" class="filters-sheet__close" id="closeFilters" aria-label="Fermer">×</button>
-            </div>
-
-            <div class="filters-sheet__body">
-              <div class="filters-sheet__section">
-                <p class="filters-sheet__label">Période</p>
-                <label class="checkbox filters-sheet__toggle">
-                  <input type="checkbox" id="showAllDates" />
-                  <span>Afficher les dates passées</span>
-                </label>
-              </div>
-              <div class="filters">
-                <label class="field">
-                  <span>Film</span>
-                  <select id="movieFilter">
-                    <option value="all">Tous les films</option>
-                  </select>
-                </label>
-
-                <label class="field">
-                  <span>Version</span>
-                  <div class="dropdown" data-dropdown="version">
-                    <button
-                      type="button"
-                      class="dropdown__button"
-                      id="versionDropdownButton"
-                      aria-haspopup="true"
-                      aria-expanded="false"
-                    >
-                      Toutes les versions
-                    </button>
-                    <div class="dropdown__panel" id="versionDropdownPanel">
-                      <div class="checkbox-group" id="versionFilter">
-                        <label class="checkbox">
-                          <input type="checkbox" id="vfFilter" checked />
-                          <span>VF</span>
-                        </label>
-                        <label class="checkbox">
-                          <input type="checkbox" id="vostFilter" checked />
-                          <span>VOST</span>
-                        </label>
-                        <label class="checkbox">
-                          <input type="checkbox" id="vofFilter" checked />
-                          <span>VOF</span>
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                </label>
-
-                <label class="field" id="cinemaFilterWrap">
-                  <span>Cinémas</span>
-                  <div class="dropdown" data-dropdown="cinema">
-                    <button
-                      type="button"
-                      class="dropdown__button"
-                      id="cinemaDropdownButton"
-                      aria-haspopup="true"
-                      aria-expanded="false"
-                    >
-                      Tous les cinémas
-                    </button>
-                    <div class="dropdown__panel" id="cinemaDropdownPanel">
-                      <div class="checkbox-group" id="cinemaFilters"></div>
-                    </div>
-                  </div>
-                </label>
-              </div>
-            </div>
-
-          </div>
-        </div>
       </section>
 
       <main>
