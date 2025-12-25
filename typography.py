@@ -50,6 +50,10 @@ def normalize_french_typography(text: str) -> str:
     if not text:
         return text
 
+    # Decode common HTML entity before punctuation spacing normalization.
+    # Prevents '&amp;' from turning into '&\u202F;'.
+    text = text.replace("&amp;", "&")
+
     # Normalize three dots into a single ellipsis character.
     text = _ELLIPSIS_RE.sub("…", text)
 
@@ -70,6 +74,7 @@ if __name__ == "__main__":
     assert normalize_french_typography("«Bonjour»") == "«\u202FBonjour\u202F»"
     assert normalize_french_typography("Film : titre") == "Film\u202F: titre"
     assert normalize_french_typography("Un titre...") == "Un titre…"
+    assert normalize_french_typography("A &amp; B;") == "A & B\u202F;"
     # Idempotency
     sample = "«\u202FBonjour\u202F»"
     assert normalize_french_typography(sample) == sample
