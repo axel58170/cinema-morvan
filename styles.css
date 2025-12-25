@@ -619,6 +619,10 @@ body {
   border: 1px solid var(--stroke);
 }
 
+.group__poster--clickable {
+  cursor: pointer;
+}
+
 /* Re-declare alignment for film layout; relies on DOM structure */
 .group__header {
   align-items: flex-start;

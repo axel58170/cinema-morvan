@@ -121,6 +121,16 @@ const setPosterImage = (img, movieData) => {
   }
 };
 
+const attachTrailerClick = (img, movieData) => {
+  const trailerUrl = movieData?.yt_trailer_url;
+  if (!trailerUrl) return;
+  img.classList.add('group__poster--clickable');
+  img.addEventListener('click', (event) => {
+    event.stopPropagation();
+    window.open(trailerUrl, '_blank', 'noopener');
+  });
+};
+
 const getTodayISO = () => {
   const now = new Date();
   const y = now.getFullYear();
@@ -636,6 +646,7 @@ const renderGroups = (groups, options = {}) => {
         img.className = 'group__poster';
         img.alt = movieData?.movie_title ? `Affiche de ${movieData.movie_title}` : 'Affiche du film';
         setPosterImage(img, movieData);
+        attachTrailerClick(img, movieData);
         media.appendChild(img);
       }
       if (movieData) {
@@ -904,6 +915,7 @@ const renderFilmGroups = (groups) => {
     img.className = 'group__poster';
     img.alt = movieData?.movie_title ? `Affiche de ${movieData.movie_title}` : 'Affiche du film';
     setPosterImage(img, movieData);
+    attachTrailerClick(img, movieData);
     media.appendChild(img);
 
     const hideBtn = document.createElement('button');
