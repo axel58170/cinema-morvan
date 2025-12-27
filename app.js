@@ -122,12 +122,12 @@ const setPosterImage = (img, movieData) => {
 };
 
 const attachTrailerClick = (img, movieData) => {
-  const trailerUrl = movieData?.yt_trailer_url;
+  const trailerUrl = getValidatedTrailerUrl(movieData?.yt_trailer_url);
   if (!trailerUrl) return;
   img.classList.add('group__poster--clickable');
   img.addEventListener('click', (event) => {
     event.stopPropagation();
-    window.open(trailerUrl, '_blank', 'noopener');
+    window.open(trailerUrl.href, '_blank', 'noopener');
   });
 };
 

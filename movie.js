@@ -150,9 +150,9 @@ const render = async () => {
     });
   }
 
-  if (movie.yt_trailer_url) {
-    const url = new URL(movie.yt_trailer_url);
-    const id = url.searchParams.get('v');
+  const trailerUrl = getValidatedTrailerUrl(movie.yt_trailer_url);
+  if (trailerUrl) {
+    const id = getYouTubeVideoId(trailerUrl);
     if (id && window.location.protocol !== 'file:') {
       const iframe = document.createElement('iframe');
       iframe.width = '100%';
@@ -165,7 +165,7 @@ const render = async () => {
       movieTrailerEl.appendChild(iframe);
     } else {
       const link = document.createElement('a');
-      link.href = movie.yt_trailer_url;
+      link.href = trailerUrl.href;
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
       link.textContent = 'Voir la bande-annonce sur YouTube';
