@@ -145,6 +145,46 @@ const getTodayISO = () => {
 
 const program = window.PROGRAM || [];
 const moviesCatalog = window.MOVIES || [];
+const validationWarnings = [];
+
+const isNonEmptyString = (value) => typeof value === 'string' && value.trim().length > 0;
+
+const collectMissingFields = (recordsList, requiredFields, kind) => {
+  recordsList.forEach((record, index) => {
+    requiredFields.forEach((field) => {
+      const value = record?.[field];
+      if (!isNonEmptyString(value)) {
+        validationWarnings.push({
+          kind,
+          index,
+          field,
+          value
+        });
+      }
+    });
+  });
+};
+
+collectMissingFields(program, ['cinema', 'movie_title', 'date', 'time'], 'screening');
+collectMissingFields(moviesCatalog, ['movie_title'], 'movie');
+
+if (validationWarnings.length > 0) {
+  console.warn(
+    `[data-warning] ${validationWarnings.length} validation issues found in JSON payloads.`,
+    validationWarnings
+  );
+  validationWarnings.forEach((warning) => {
+    const record = warning.kind === 'screening' ? program[warning.index] : moviesCatalog[warning.index];
+    console.warn(
+      `[data-warning] ${warning.kind} #${warning.index} missing ${warning.field}`,
+      { value: warning.value, record }
+    );
+  });
+  const dataWarningEl = document.querySelector('#dataWarning');
+  if (dataWarningEl) {
+    dataWarningEl.hidden = false;
+  }
+}
 
 const moviesByTitle = new Map(
   moviesCatalog.map((movie) => [normalize(movie.movie_title), movie])
